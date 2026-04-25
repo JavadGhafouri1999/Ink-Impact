@@ -19,10 +19,12 @@ import com.weblog.postservice.model.Post;
 import com.weblog.postservice.repository.PostRepository;
 import com.weblog.postservice.utils.SlugGenerator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,11 +39,12 @@ import java.util.UUID;
 public class PostServiceImpl implements PostService {
 	
 	private final PostRepository postRepo; // 2. Make it final for safety
+	private final CacheManager   cacheManager;
 	
-	public PostServiceImpl(PostRepository postRepo) {
-		this.postRepo = postRepo;
+	public PostServiceImpl(PostRepository postRepo, CacheManager cacheManager) {
+		this.postRepo     = postRepo;
+		this.cacheManager = cacheManager;
 	}
-	
 	
 	private Post findPostAndVerifyOwnership(UUID postId, UUID authorId) {
 		Post post = postRepo.findById(postId)
@@ -57,12 +60,12 @@ public class PostServiceImpl implements PostService {
 	@Override
 	@Transactional // Good for write operations
 	public PostResponseDto create(PostCreateRequestDto request, UUID authorId) {
-		if(postRepo.existsByTitle(request.title())) {
+		try {
+			Post post = postRepo.save(PostMapper.toModel(request, authorId));
+			return PostMapper.toDto(post);
+		} catch(DataIntegrityViolationException e) {
 			throw new DuplicateTitleException(request.title());
 		}
-		
-		Post post = postRepo.save(PostMapper.toModel(request, authorId));
-		return PostMapper.toDto(post);
 	}
 	
 	@Override
@@ -79,10 +82,15 @@ public class PostServiceImpl implements PostService {
 			post.setTitle(request.title());
 			post.setSlug(SlugGenerator.generateSlug(request.title()));
 		}
-		if(request.content() != null)
+		if(request.tags() != null) {
+			post.setTags(request.tags());
+		}
+		if(request.content() != null) {
 			post.setContent(request.content());
-		if(request.published() != null)
+		}
+		if(request.published() != null) {
 			post.setPublished(request.published());
+		}
 		
 		return PostMapper.toDto(postRepo.save(post));
 	}
@@ -99,7 +107,7 @@ public class PostServiceImpl implements PostService {
 	
 	@Override
 	@Transactional(readOnly = true)// Hibernate: "Don't bother tracking changes"
-	@Cacheable(value = "posts", key = "#id")
+	@Cacheable(value = "posts", key = "'id:' + #id")
 	public PostResponseDto getById(UUID id) {
 		log.debug("Cache miss - request send to DB ID: {}", id);
 		Post post = postRepo.findById(id)
@@ -109,7 +117,7 @@ public class PostServiceImpl implements PostService {
 	
 	@Override
 	@Transactional(readOnly = true)
-	@Cacheable(value = "posts", key = "#slug")
+	@Cacheable(value = "posts", key = "'slug:' + #slug")
 	public PostResponseDto getBySlug(String slug) {
 		log.debug("Cache miss - fetching post by slug from DB: {}", slug);
 		Post post = postRepo.findBySlug(slug).orElseThrow(
@@ -121,22 +129,32 @@ public class PostServiceImpl implements PostService {
 	@Transactional(readOnly = true)
 	public PagedResponse <PostSummaryResponse> getByAuthorId(UUID authorId, int page, int size,
 	                                                         String sortBy) {
-		Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+		Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
 		
-		Page <Post> post = postRepo.findByAuthorId(authorId, pageable);
+		Page <Post> posts = postRepo.findByAuthorId(authorId, pageable);
 		//	posts.stream().map(post -> PostMapper.toSummaryDto(post)).toList();
 		
-		return PagedResponse.from(post.map(PostMapper::toSummaryDto));
+		return PagedResponse.from(posts.map(PostMapper::toSummaryDto));
+	}
+	
+	@Override
+	@Transactional(readOnly = true)
+	public PagedResponse <PostSummaryResponse> getByTag(String tag, int page, int size) {
+		Pageable    pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+		Page <Post> posts    = postRepo.findByTag(tag, pageable);
+		return PagedResponse.from(posts.map(PostMapper::toSummaryDto));
 	}
 	
 	@Override
 	@Transactional
-	@Caching(evict = {
-			@CacheEvict(value = "posts", key = "#id"),
-			@CacheEvict(value = "posts", key = "#result.slug")
-	})
+	@CacheEvict(value = "posts", key = "'id:' + #id")
 	public void deletePost(UUID authorId, UUID id) {
 		Post post = findPostAndVerifyOwnership(id, authorId);
+		
+		Cache cache = cacheManager.getCache("posts");
+		if(cache != null) {
+			cache.evict("'slug:' + '" + post.getSlug() + "'");
+		}
 		postRepo.delete(post);
 	}
 }

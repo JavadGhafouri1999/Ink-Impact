@@ -28,4 +28,6 @@ public interface PostService {
 	PostResponseDto getBySlug(String slug);
 	
 	PagedResponse <PostSummaryResponse> getByAuthorId(UUID authorId, int page, int size, String sortBy);
+	
+	PagedResponse <PostSummaryResponse> getByTag(String tag, int page, int size);
 }

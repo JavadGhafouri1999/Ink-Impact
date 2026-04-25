@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public class SlugGenerator {
 	
-	private SlugGenerator(String title) {
+	private SlugGenerator() {
 		// utility class, prevent instantiation
 	}
 	

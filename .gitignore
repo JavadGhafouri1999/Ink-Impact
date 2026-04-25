@@ -24,3 +24,4 @@ buildNumber.properties
 .project
 .classpath
 .env
+.idea

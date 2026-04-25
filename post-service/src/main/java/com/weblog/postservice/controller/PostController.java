@@ -6,6 +6,7 @@ import com.weblog.postservice.dto.response.PagedResponse;
 import com.weblog.postservice.dto.response.PostResponseDto;
 import com.weblog.postservice.dto.response.PostSummaryResponse;
 import com.weblog.postservice.service.PostServiceImpl;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -48,21 +49,29 @@ public class PostController {
 		return ResponseEntity.ok(postService.getByAuthorId(authorId, page, size, sortBy));
 	}
 	
+	@GetMapping("/tag/{tag}")
+	public ResponseEntity <PagedResponse <PostSummaryResponse>> getByTag(
+			@PathVariable String tag,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
+		return ResponseEntity.ok(postService.getByTag(tag, page, size));
+	}
+	
 	@PostMapping
 	public ResponseEntity <PostResponseDto> create(
-			@RequestBody PostCreateRequestDto postDate
+			@Valid @RequestBody PostCreateRequestDto postDto
 	                                              ) {
 		UUID authorId = UUID.fromString("444e5567-e89b-12d3-a456-426614174999");
-		return ResponseEntity.ok(postService.create(postDate, authorId));
+		return ResponseEntity.ok(postService.create(postDto, authorId));
 	}
 	
 	@PatchMapping("/{id}")
 	public ResponseEntity <PostResponseDto> update(
 			@PathVariable UUID id,
-			@RequestBody PostUpdateRequestDto postDate
+			@Valid @RequestBody PostUpdateRequestDto postDto
 	                                              ) {
 		UUID authorId = UUID.fromString("444e5567-e89b-12d3-a456-426614174999");
-		return ResponseEntity.ok(postService.update(id, authorId, postDate));
+		return ResponseEntity.ok(postService.update(id, authorId, postDto));
 	}
 	
 	@DeleteMapping("/{id}")

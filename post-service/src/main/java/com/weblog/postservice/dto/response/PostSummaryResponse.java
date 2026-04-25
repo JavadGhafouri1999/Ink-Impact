@@ -3,6 +3,7 @@ package com.weblog.postservice.dto.response;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record PostSummaryResponse(
@@ -10,6 +11,7 @@ public record PostSummaryResponse(
 		String title,
 		String slug,
 		String excerpt,       // ← first 100 chars only
+		List <String> tags,
 		UUID authorId,
 		@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 		LocalDateTime createdAt) {

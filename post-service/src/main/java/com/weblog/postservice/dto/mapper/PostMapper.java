@@ -6,6 +6,7 @@ import com.weblog.postservice.dto.response.PostSummaryResponse;
 import com.weblog.postservice.model.Post;
 import com.weblog.postservice.utils.SlugGenerator;
 
+import java.util.List;
 import java.util.UUID;
 
 public class PostMapper {
@@ -18,6 +19,7 @@ public class PostMapper {
 				post.getTitle(),
 				post.getSlug(),
 				post.getContent(),
+				post.getTags(),
 				post.isPublished(),
 				post.getAuthorId(),
 				post.getCreatedAt(),
@@ -35,6 +37,7 @@ public class PostMapper {
 				post.getTitle(),
 				post.getSlug(),
 				excerpt,
+				post.getTags(),
 				post.getAuthorId(),
 				post.getCreatedAt()
 		);
@@ -47,6 +50,7 @@ public class PostMapper {
 		post.setSlug(SlugGenerator.generateSlug(request.title()));
 		post.setAuthorId(authorId);
 		post.setPublished(false);
+		post.setTags(request.tags() != null ? request.tags() : List.of());
 		
 		return post;
 	}

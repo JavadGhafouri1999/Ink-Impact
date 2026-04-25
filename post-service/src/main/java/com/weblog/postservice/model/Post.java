@@ -9,6 +9,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -33,8 +35,11 @@ public class Post {
 	
 	private String slug;
 	
+	@Column(columnDefinition = "TEXT[]")
+	private List <String> tags = new ArrayList <>();
+	
 	@Column(name = "published")
-	private boolean published = false;
+	private boolean published = true;
 	
 	@CreationTimestamp
 	@Column(name = "created_at", updatable = false)
