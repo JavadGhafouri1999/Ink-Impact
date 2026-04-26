@@ -19,11 +19,10 @@ import com.weblog.postservice.model.Post;
 import com.weblog.postservice.repository.PostRepository;
 import com.weblog.postservice.utils.SlugGenerator;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,11 +38,10 @@ import java.util.UUID;
 public class PostServiceImpl implements PostService {
 	
 	private final PostRepository postRepo; // 2. Make it final for safety
-	private final CacheManager   cacheManager;
 	
-	public PostServiceImpl(PostRepository postRepo, CacheManager cacheManager) {
-		this.postRepo     = postRepo;
-		this.cacheManager = cacheManager;
+	public PostServiceImpl(PostRepository postRepo) {
+		this.postRepo = postRepo;
+		
 	}
 	
 	private Post findPostAndVerifyOwnership(UUID postId, UUID authorId) {
@@ -147,14 +145,11 @@ public class PostServiceImpl implements PostService {
 	
 	@Override
 	@Transactional
-	@CacheEvict(value = "posts", key = "'id:' + #id")
+	@Caching(evict = {
+			@CacheEvict(value = "posts", key = "'id:' + #id"),
+	})
 	public void deletePost(UUID authorId, UUID id) {
 		Post post = findPostAndVerifyOwnership(id, authorId);
-		
-		Cache cache = cacheManager.getCache("posts");
-		if(cache != null) {
-			cache.evict("'slug:' + '" + post.getSlug() + "'");
-		}
 		postRepo.delete(post);
 	}
 }

@@ -1,5 +1,6 @@
 services :
-    kafka        :
+    # ─────────────────────── Kafka ────────────────────────
+    kafka           :
         image          : apache/kafka:3.9.2
         container_name : kafka
         environment    :
@@ -35,7 +36,8 @@ services :
             retries      : 5
             start_period : 30s
     
-    redis        :
+    # ─────────────────── Redis - Cache ────────────────────
+    redis           :
         image    : redis:7-alpine
         ports    :
             - "6379:6379"
@@ -45,8 +47,8 @@ services :
             - redis-post-data:/data
         restart  : always
     
-    
-    post-db      :
+    # ─────────────────── Post Database ────────────────────
+    post-db         :
         image          : postgres:17-alpine
         container_name : post-db
         volumes        :
@@ -65,7 +67,28 @@ services :
             timeout  : 5s
             retries  : 5
     
-    post-service :
+    # ────────────────── Comment Database ──────────────────
+    comment-db      :
+        image          : postgres:17-alpine
+        container_name : comment-db
+        volumes        :
+            - comment-db:/var/lib/postgresql/data
+        ports          :
+            - "5002:5432"
+        networks       :
+            - blog-net
+        environment    :
+            POSTGRES_DB       : ${COMMENT_DB}
+            POSTGRES_USER     : ${POSTGRES_USER}
+            POSTGRES_PASSWORD : ${POSTGRES_PASSWORD}
+        healthcheck    :
+            test     : [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${COMMENT_DB}" ]
+            interval : 5s
+            timeout  : 5s
+            retries  : 5
+    
+    # ──────────────────── Post Service ────────────────────
+    post-service    :
         build          :
             context    : ./post-service
             dockerfile : Dockerfile
@@ -84,9 +107,32 @@ services :
             SPRING_KAFKA_BOOTSTRAP_SERVERS : kafka:9092
             SPRING_DATA_REDIS_HOST         : redis
             SPRING_DATA_REDIS_PORT         : 6379
+    
+    # ────────────────── Comment Service ───────────────────
+    comment-service :
+        build          :
+            context    : ./comment-service
+            dockerfile : Dockerfile
+        container_name : comment-service
+        ports          :
+            - "4001:4001"
+        networks       :
+            - blog-net
+        depends_on     :
+            comment-db :
+                condition : service_healthy
+        environment    :
+            SPRING_DATASOURCE_URL          : jdbc:postgresql://post-db:5432/comment_db
+            SPRING_DATASOURCE_USERNAME     : ${POSTGRES_USER}
+            SPRING_DATASOURCE_PASSWORD     : ${POSTGRES_PASSWORD}
+            SPRING_KAFKA_BOOTSTRAP_SERVERS : kafka:9092
+            SPRING_DATA_REDIS_HOST         : redis
+            SPRING_DATA_REDIS_PORT         : 6379
 
+# ───────────────────────── Others ─────────────────────────
 volumes  :
     post-db         :
+    comment-db      :
     redis-post-data :
 
 networks :

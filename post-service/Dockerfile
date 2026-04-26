@@ -7,7 +7,7 @@ FROM maven:3.9.9-eclipse-temurin-21 AS builder
 # Inside our container there must be a place which our app works and takes its data /app is the simplest one
 WORKDIR /app
 
-# Configure Maven with MVNHub mirror (Iranian mirror)
+# Configure Maven with MVNHub mirror
 RUN mkdir -p /root/.m2 && \
     echo '<?xml version="1.0" encoding="UTF-8"?>\n\
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"\n\
