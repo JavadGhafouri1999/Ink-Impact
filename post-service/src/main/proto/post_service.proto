@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.weblog.postservice.grpc";
+
+service PostService {
+	rpc PostExists(PostExistsRequest) returns (PostExistsResponse);
+}
+
+message PostExistsRequest {
+	string post_id = 1;
+}
+
+message PostExistsResponse {
+	bool exists = 1;
+}

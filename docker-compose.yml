@@ -122,7 +122,7 @@ services :
             comment-db :
                 condition : service_healthy
         environment    :
-            SPRING_DATASOURCE_URL          : jdbc:postgresql://post-db:5432/comment_db
+            SPRING_DATASOURCE_URL          : jdbc:postgresql://comment-db:5432/comment_db
             SPRING_DATASOURCE_USERNAME     : ${POSTGRES_USER}
             SPRING_DATASOURCE_PASSWORD     : ${POSTGRES_PASSWORD}
             SPRING_KAFKA_BOOTSTRAP_SERVERS : kafka:9092

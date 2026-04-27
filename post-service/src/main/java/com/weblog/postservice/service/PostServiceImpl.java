@@ -114,6 +114,12 @@ public class PostServiceImpl implements PostService {
 	
 	@Override
 	@Transactional(readOnly = true)
+	public boolean existsById(UUID id) {
+		return postRepo.existsById(id);
+	}
+	
+	@Override
+	@Transactional(readOnly = true)
 	@Cacheable(value = "posts", key = "#slug")
 	public PostResponseDto getBySlug(String slug) {
 		log.debug("Cache miss - fetching post by slug from DB: {}", slug);

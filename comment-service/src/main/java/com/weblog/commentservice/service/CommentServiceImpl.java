@@ -8,6 +8,8 @@ import com.weblog.commentservice.dto.response.PagedResponse;
 import com.weblog.commentservice.exception.CommentNotFoundException;
 import com.weblog.commentservice.model.Comment;
 import com.weblog.commentservice.repository.CommentRepository;
+import com.weblog.postservice.grpc.PostExistsRequest;
+import com.weblog.postservice.grpc.PostServiceGrpc;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,10 +23,13 @@ import java.util.UUID;
 @Service
 public class CommentServiceImpl implements CommentService {
 	
-	private final CommentRepository commentRepo;
+	private final CommentRepository                       commentRepo;
+	private final PostServiceGrpc.PostServiceBlockingStub postStub;
 	
-	public CommentServiceImpl(CommentRepository commentRepo) {
+	public CommentServiceImpl(CommentRepository commentRepo,
+	                          PostServiceGrpc.PostServiceBlockingStub postStub) {
 		this.commentRepo = commentRepo;
+		this.postStub    = postStub;
 	}
 	
 	@Override
@@ -60,6 +65,16 @@ public class CommentServiceImpl implements CommentService {
 	@Override
 	@Transactional
 	public CommentResponseDto create(UUID userId, CommentRequestDto request) {
+		
+		boolean postExists = postStub.postExists(
+				PostExistsRequest.newBuilder()
+				                 .setPostId(request.postId().toString())
+				                 .build()).getExists();
+		
+		if(!postExists) {
+			throw new RuntimeException("post does not exists - ID: " + request.postId());
+		}
+		
 		Comment comment = commentRepo.save(CommentMapper.toModel(request, userId));
 		return CommentMapper.toDto(comment);
 	}

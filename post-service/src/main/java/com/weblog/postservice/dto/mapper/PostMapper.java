@@ -49,7 +49,7 @@ public class PostMapper {
 		post.setContent(request.content());
 		post.setSlug(SlugGenerator.generateSlug(request.title()));
 		post.setAuthorId(authorId);
-		post.setPublished(false);
+		post.setPublished(request.published());
 		post.setTags(request.tags() != null ? request.tags() : List.of());
 		
 		return post;

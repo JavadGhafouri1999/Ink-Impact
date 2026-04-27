@@ -17,6 +17,8 @@ public interface PostRepository extends JpaRepository <Post, UUID> {
 	
 	boolean existsByTitle(String title);
 	
+	boolean existsById(UUID postId);
+	
 	// For pagination - only published posts
 	Page <Post> findByPublishedTrue(Pageable pageable);
 	

@@ -25,6 +25,8 @@ public interface PostService {
 	
 	PostResponseDto getById(UUID id);
 	
+	boolean existsById(UUID id);
+	
 	PostResponseDto getBySlug(String slug);
 	
 	PagedResponse <PostSummaryResponse> getByAuthorId(UUID authorId, int page, int size, String sortBy);
