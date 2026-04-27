@@ -6,7 +6,7 @@ import org.springframework.cache.annotation.EnableCaching;
 
 @EnableCaching
 @SpringBootApplication
-public class CommentServiceApplication {
+public class  CommentServiceApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(CommentServiceApplication.class, args);
 	}

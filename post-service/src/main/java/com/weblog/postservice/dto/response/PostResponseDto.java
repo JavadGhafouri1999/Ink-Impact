@@ -8,7 +8,7 @@ public record PostResponseDto(
 		UUID id,
 		String title,
 		String slug,
-		String content,      // ← full content
+		String content,
 		List <String> tags,
 		boolean published,
 		UUID authorId,

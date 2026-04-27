@@ -22,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -105,7 +104,7 @@ public class PostServiceImpl implements PostService {
 	
 	@Override
 	@Transactional(readOnly = true)// Hibernate: "Don't bother tracking changes"
-	@Cacheable(value = "posts", key = "'id:' + #id")
+	@Cacheable(value = "posts", key = "#id")
 	public PostResponseDto getById(UUID id) {
 		log.debug("Cache miss - request send to DB ID: {}", id);
 		Post post = postRepo.findById(id)
@@ -115,7 +114,7 @@ public class PostServiceImpl implements PostService {
 	
 	@Override
 	@Transactional(readOnly = true)
-	@Cacheable(value = "posts", key = "'slug:' + #slug")
+	@Cacheable(value = "posts", key = "#slug")
 	public PostResponseDto getBySlug(String slug) {
 		log.debug("Cache miss - fetching post by slug from DB: {}", slug);
 		Post post = postRepo.findBySlug(slug).orElseThrow(
@@ -130,7 +129,6 @@ public class PostServiceImpl implements PostService {
 		Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
 		
 		Page <Post> posts = postRepo.findByAuthorId(authorId, pageable);
-		//	posts.stream().map(post -> PostMapper.toSummaryDto(post)).toList();
 		
 		return PagedResponse.from(posts.map(PostMapper::toSummaryDto));
 	}
@@ -145,9 +143,7 @@ public class PostServiceImpl implements PostService {
 	
 	@Override
 	@Transactional
-	@Caching(evict = {
-			@CacheEvict(value = "posts", key = "'id:' + #id"),
-	})
+	@CacheEvict(value = "posts", key = "#id")
 	public void deletePost(UUID authorId, UUID id) {
 		Post post = findPostAndVerifyOwnership(id, authorId);
 		postRepo.delete(post);
