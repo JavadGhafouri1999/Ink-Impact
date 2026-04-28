@@ -49,7 +49,8 @@ public class Post {
 	@Column(name = "updated_at")
 	private LocalDateTime updatedAt;
 	
-	public Post(UUID authorId, String content, LocalDateTime createdAt, boolean published, String slug,
+	public Post(UUID authorId, String content,
+	            LocalDateTime createdAt, boolean published, String slug,
 	            String title, LocalDateTime updatedAt) {
 		this.authorId  = authorId;
 		this.title     = title;

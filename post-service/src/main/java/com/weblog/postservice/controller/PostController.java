@@ -5,6 +5,7 @@ import com.weblog.postservice.dto.request.PostUpdateRequestDto;
 import com.weblog.postservice.dto.response.PagedResponse;
 import com.weblog.postservice.dto.response.PostResponseDto;
 import com.weblog.postservice.dto.response.PostSummaryResponse;
+import com.weblog.postservice.model.PostSearchDocument;
 import com.weblog.postservice.service.PostServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,6 +13,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -32,6 +34,11 @@ public class PostController {
 			@RequestParam(defaultValue = "10") int size,
 			@RequestParam(defaultValue = "createdAt") String sortBy) {
 		return ResponseEntity.ok(postService.getPosts(page, size, sortBy));
+	}
+	
+	@GetMapping("/search")
+	public List <PostSearchDocument> search(@RequestParam String q) {
+		return postService.search(q);
 	}
 	
 	@GetMapping("/{id}")
@@ -98,4 +105,5 @@ public class PostController {
 		postService.deletePost(authorId, id);
 		return ResponseEntity.ok().body("Post with ID " + id + " was deleted");
 	}
+	
 }

@@ -8,6 +8,7 @@ import org.springframework.cache.annotation.EnableCaching;
 @SpringBootApplication
 public class PostServiceApplication {
 	public static void main(String[] args) {
+		
 		SpringApplication.run(PostServiceApplication.class, args);
 	}
 }

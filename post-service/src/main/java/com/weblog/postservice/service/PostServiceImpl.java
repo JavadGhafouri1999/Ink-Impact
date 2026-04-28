@@ -16,7 +16,9 @@ import com.weblog.postservice.exception.DuplicateTitleException;
 import com.weblog.postservice.exception.PostNotFoundException;
 import com.weblog.postservice.exception.UnauthorizedException;
 import com.weblog.postservice.model.Post;
+import com.weblog.postservice.model.PostSearchDocument;
 import com.weblog.postservice.repository.PostRepository;
+import com.weblog.postservice.repository.PostSearchRepository;
 import com.weblog.postservice.utils.SlugGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -27,20 +29,44 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.UUID;
 
 @Service // 1. Add this to make it a Spring Bean
 @Slf4j
 public class PostServiceImpl implements PostService {
 	
-	private final PostRepository postRepo; // 2. Make it final for safety
+	private final PostRepository          postRepo; // 2. Make it final for safety
+	private final PostSearchRepository    repo;
+	private final ElasticsearchOperations operations;
 	
-	public PostServiceImpl(PostRepository postRepo) {
-		this.postRepo = postRepo;
-		
+	public PostServiceImpl(PostRepository postRepo,
+	                       PostSearchRepository repo,
+	                       ElasticsearchOperations operations) {
+		this.postRepo   = postRepo;
+		this.repo       = repo;
+		this.operations = operations;
+	}
+	
+	public void indexPost(Post post) {
+		PostSearchDocument doc = new PostSearchDocument();
+		doc.setId(post.getId().toString());
+		doc.setTitle(post.getTitle());
+		doc.setContent(post.getContent());
+		doc.setTags(post.getTags());
+		doc.setCreatedAt(
+				post.getCreatedAt() != null
+				? post.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant()
+				: Instant.now()
+		                );
+		repo.save(doc);
 	}
 	
 	private Post findPostAndVerifyOwnership(UUID postId, UUID authorId) {
@@ -59,6 +85,7 @@ public class PostServiceImpl implements PostService {
 	public PostResponseDto create(PostCreateRequestDto request, UUID authorId) {
 		try {
 			Post post = postRepo.save(PostMapper.toModel(request, authorId));
+			indexPost(post);
 			return PostMapper.toDto(post);
 		} catch(DataIntegrityViolationException e) {
 			throw new DuplicateTitleException(request.title());
@@ -88,8 +115,9 @@ public class PostServiceImpl implements PostService {
 		if(request.published() != null) {
 			post.setPublished(request.published());
 		}
-		
-		return PostMapper.toDto(postRepo.save(post));
+		Post updated = postRepo.save(post);
+		indexPost(updated);
+		return PostMapper.toDto(updated);
 	}
 	
 	@Override
@@ -154,4 +182,23 @@ public class PostServiceImpl implements PostService {
 		Post post = findPostAndVerifyOwnership(id, authorId);
 		postRepo.delete(post);
 	}
+	
+	
+	public List <PostSearchDocument> search(String q) {
+		var query = NativeQuery.builder()
+		                       .withQuery(qb -> qb
+				                                  .multiMatch(m -> m
+						                                              .fields("title", "content")
+						                                              .query(q)
+						                                              .fuzziness("AUTO")
+				                                             )
+		                                 )
+		                       .build();
+		var hits = operations.search(query, PostSearchDocument.class);
+		
+		return hits.stream()
+		           .map(hit -> hit.getContent())
+		           .toList();
+	}
+	
 }
