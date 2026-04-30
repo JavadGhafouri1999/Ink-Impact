@@ -1,6 +1,6 @@
 services :
     # ─────────────────────── Kafka ────────────────────────
-    kafka           :
+    kafka             :
         image          : apache/kafka:3.9.2
         container_name : kafka
         environment    :
@@ -18,7 +18,6 @@ services :
             KAFKA_LISTENER_SECURITY_PROTOCOL_MAP           : PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
             KAFKA_CONTROLLER_LISTENER_NAMES                : CONTROLLER
             KAFKA_INTER_BROKER_LISTENER_NAME               : PLAINTEXT
-            KAFKA_CLUSTER_ID                               : MkU3OEVBNTcwNTJENDM2Qk
             KAFKA_AUTO_CREATE_TOPICS_ENABLE                : "true"
             KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR         : 1
             KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR : 1
@@ -37,7 +36,7 @@ services :
             start_period : 30s
     
     # ─────────────────── Elasticsearch ────────────────────
-    elasticsearch   :
+    elasticsearch     :
         image          : elasticsearch:8.13.4
         container_name : elasticsearch
         environment    :
@@ -59,7 +58,7 @@ services :
             start_period : 30s
     
     # ─────────────────── Redis - Cache ────────────────────
-    redis           :
+    redis             :
         image    : redis:7-alpine
         ports    :
             - "16379:6379"
@@ -70,7 +69,7 @@ services :
         restart  : always
     
     # ─────────────────── Post Database ────────────────────
-    post-db         :
+    post-db           :
         image          : postgres:17-alpine
         container_name : post-db
         volumes        :
@@ -90,7 +89,7 @@ services :
             retries  : 5
     
     # ────────────────── Comment Database ──────────────────
-    comment-db      :
+    comment-db        :
         image          : postgres:17-alpine
         container_name : comment-db
         volumes        :
@@ -109,8 +108,28 @@ services :
             timeout  : 5s
             retries  : 5
     
+    # ────────────────── Analytics Database ──────────────────
+    analytics-db      :
+        image          : postgres:17-alpine
+        container_name : analytics-db
+        volumes        :
+            - analytics-db:/var/lib/postgresql/data
+        ports          :
+            - "5003:5432"
+        networks       :
+            - blog-net
+        environment    :
+            POSTGRES_DB       : ${ANALYTICS_DB}
+            POSTGRES_USER     : ${POSTGRES_USER}
+            POSTGRES_PASSWORD : ${POSTGRES_PASSWORD}
+        healthcheck    :
+            test     : [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${ANALYTICS_DB}" ]
+            interval : 5s
+            timeout  : 5s
+            retries  : 5
+    
     # ──────────────────── Post Service ────────────────────
-    post-service    :
+    post-service      :
         build          :
             context    : ./post-service
             dockerfile : Dockerfile
@@ -133,7 +152,7 @@ services :
             SPRING_DATA_REDIS_PORT         : 6379
     
     # ────────────────── Comment Service ───────────────────
-    comment-service :
+    comment-service   :
         build          :
             context    : ./comment-service
             dockerfile : Dockerfile
@@ -152,11 +171,31 @@ services :
             SPRING_KAFKA_BOOTSTRAP_SERVERS : kafka:9092
             SPRING_DATA_REDIS_HOST         : redis
             SPRING_DATA_REDIS_PORT         : 6379
+    
+    # ────────────────── Analytics Service ───────────────────
+    analytics-service :
+        build          :
+            context    : ./analytics-service
+            dockerfile : Dockerfile
+        container_name : analytics-service
+        ports          :
+            - "4003:4003"
+        networks       :
+            - blog-net
+        depends_on     :
+            analytics-db :
+                condition : service_healthy
+        environment    :
+            SPRING_DATASOURCE_URL          : jdbc:postgresql://analytics-db:5432/analytics_db
+            SPRING_DATASOURCE_USERNAME     : ${POSTGRES_USER}
+            SPRING_DATASOURCE_PASSWORD     : ${POSTGRES_PASSWORD}
+            SPRING_KAFKA_BOOTSTRAP_SERVERS : kafka:9092
 
 # ───────────────────────── Others ─────────────────────────
 volumes  :
     post-db         :
     comment-db      :
+    analytics-db    :
     redis-post-data :
     es-data         :
 

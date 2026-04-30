@@ -6,6 +6,7 @@ import com.weblog.commentservice.dto.request.CommentUpdateDto;
 import com.weblog.commentservice.dto.response.CommentResponseDto;
 import com.weblog.commentservice.dto.response.PagedResponse;
 import com.weblog.commentservice.exception.CommentNotFoundException;
+import com.weblog.commentservice.kafka.KafkaProducer;
 import com.weblog.commentservice.model.Comment;
 import com.weblog.commentservice.repository.CommentRepository;
 import com.weblog.postservice.grpc.PostExistsRequest;
@@ -25,11 +26,14 @@ public class CommentServiceImpl implements CommentService {
 	
 	private final CommentRepository                       commentRepo;
 	private final PostServiceGrpc.PostServiceBlockingStub postStub;
+	private final KafkaProducer                           kafkaProducer;
 	
 	public CommentServiceImpl(CommentRepository commentRepo,
-	                          PostServiceGrpc.PostServiceBlockingStub postStub) {
-		this.commentRepo = commentRepo;
-		this.postStub    = postStub;
+	                          PostServiceGrpc.PostServiceBlockingStub postStub,
+	                          KafkaProducer kafkaProducer) {
+		this.commentRepo   = commentRepo;
+		this.postStub      = postStub;
+		this.kafkaProducer = kafkaProducer;
 	}
 	
 	@Override
@@ -76,6 +80,10 @@ public class CommentServiceImpl implements CommentService {
 		}
 		
 		Comment comment = commentRepo.save(CommentMapper.toModel(request, userId));
+		
+		// Kafka-Event
+		kafkaProducer.sendEvent(comment);
+		
 		return CommentMapper.toDto(comment);
 	}
 	

@@ -15,6 +15,7 @@ import com.weblog.postservice.dto.response.PostSummaryResponse;
 import com.weblog.postservice.exception.DuplicateTitleException;
 import com.weblog.postservice.exception.PostNotFoundException;
 import com.weblog.postservice.exception.UnauthorizedException;
+import com.weblog.postservice.kafka.KafkaProducer;
 import com.weblog.postservice.model.Post;
 import com.weblog.postservice.model.PostSearchDocument;
 import com.weblog.postservice.repository.PostRepository;
@@ -46,13 +47,16 @@ public class PostServiceImpl implements PostService {
 	private final PostRepository          postRepo; // 2. Make it final for safety
 	private final PostSearchRepository    repo;
 	private final ElasticsearchOperations operations;
+	private final KafkaProducer           kafkaProducer;
 	
 	public PostServiceImpl(PostRepository postRepo,
 	                       PostSearchRepository repo,
-	                       ElasticsearchOperations operations) {
-		this.postRepo   = postRepo;
-		this.repo       = repo;
-		this.operations = operations;
+	                       ElasticsearchOperations operations,
+	                       KafkaProducer kafkaProducer) {
+		this.postRepo      = postRepo;
+		this.repo          = repo;
+		this.operations    = operations;
+		this.kafkaProducer = kafkaProducer;
 	}
 	
 	public void indexPost(Post post) {
@@ -86,6 +90,10 @@ public class PostServiceImpl implements PostService {
 		try {
 			Post post = postRepo.save(PostMapper.toModel(request, authorId));
 			indexPost(post);
+			
+			// kafka-Event
+			kafkaProducer.sendEvent(post);
+			
 			return PostMapper.toDto(post);
 		} catch(DataIntegrityViolationException e) {
 			throw new DuplicateTitleException(request.title());

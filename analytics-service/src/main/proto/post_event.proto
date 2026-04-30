@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option java_package = "com.weblog.analyticservice.event";
+
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+message PostEvent{
+	string id = 1;
+	string title = 2;
+	string slug = 3;
+	string content = 4;
+	repeated string tags = 5;
+	string authorId = 6;
+	google.protobuf.Timestamp createdAt = 7;
+}
