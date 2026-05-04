@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Connection;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -78,5 +79,47 @@ public class PostAnalyticsRepository {
 				});
 	}
 	
+	public int countTotalPost() {
+		return jdbc.queryForObject(
+				"SELECT COUNT(*) FROM post_analytics",
+				Integer.class
+		                          );
+	}
 	
+	public List <PostAnalytics> findLatest(int limit) {
+		return jdbc.query(
+				"SELECT * FROM post_analytics ORDER BY created_at DESC LIMIT ?",
+				PostAnalyticsRepository.MAPPER,
+				limit
+		                 );
+	}
+	
+	public List <PostAnalytics> findByAuthor(String authorId) {
+		return jdbc.query(
+				"SELECT * FROM post_analytics WHERE author_id = ?",
+				PostAnalyticsRepository.MAPPER,
+				authorId);
+	}
+	
+	public List <PostAnalytics> findBetween(Instant start, Instant end) {
+		return jdbc.query(
+				"SELECT * FROM post_analytics WHERE created_at BETWEEN ? AND ? ORDER BY created_at",
+				PostAnalyticsRepository.MAPPER,
+				start, end
+		                 );
+	}
+	
+	public List <Object[]> countPostsPerDay(int days) {
+		return jdbc.query(
+				"""
+				SELECT date(created_at) AS day, COUNT(*)
+				FROM post_analytics
+				GROUP BY day
+				ORDER BY day DESC
+				LIMIT ?
+				""",
+				(rs, n) -> new Object[] {rs.getDate("day").toLocalDate(), rs.getInt("count")},
+				days
+		                 );
+	}
 }

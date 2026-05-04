@@ -45,4 +45,5 @@ public class CommentAnalyticsService extends BatchIngestor <CommentAnalytics> {
 	protected String name() {
 		return "CommentAnalytics";
 	}
+	
 }
