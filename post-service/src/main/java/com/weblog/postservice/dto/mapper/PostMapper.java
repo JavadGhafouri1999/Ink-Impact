@@ -9,7 +9,7 @@ import com.weblog.postservice.utils.SlugGenerator;
 import java.util.List;
 import java.util.UUID;
 
-public class PostMapper {
+public final class PostMapper {
 	
 	private PostMapper() { }
 	

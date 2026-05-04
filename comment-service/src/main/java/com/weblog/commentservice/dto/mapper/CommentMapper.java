@@ -6,7 +6,9 @@ import com.weblog.commentservice.model.Comment;
 
 import java.util.UUID;
 
-public class CommentMapper {
+public final class CommentMapper {
+	
+	private CommentMapper() { }
 	
 	static public CommentResponseDto toDto(Comment comment) {
 		return new CommentResponseDto(

@@ -77,4 +77,6 @@ public class PostAnalyticsRepository {
 					ps.setTimestamp(8, Timestamp.valueOf(pa.getIngestedAt()));
 				});
 	}
+	
+	
 }
