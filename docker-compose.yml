@@ -9,13 +9,13 @@ services :
       KAFKA_CONTROLLER_QUORUM_VOTERS                 : 1@kafka:9093
       
       # Two listeners — one for inside Docker, one for outside
-      KAFKA_LISTENERS                                : PLAINTEXT://:9092,EXTERNAL://:9094,CONTROLLER://:9093
+      KAFKA_LISTENERS                                : PLAINTEXT://:9092,CONTROLLER://:9093
       
       # Internal = kafka:9092 for containers
       # External = localhost:9094 for IntelliJ/tools outside Docker
-      KAFKA_ADVERTISED_LISTENERS                     : PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_ADVERTISED_LISTENERS                     : PLAINTEXT://kafka:9092
       
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP           : PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP           : PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES                : CONTROLLER
       KAFKA_INTER_BROKER_LISTENER_NAME               : PLAINTEXT
       KAFKA_AUTO_CREATE_TOPICS_ENABLE                : "true"
@@ -23,9 +23,7 @@ services :
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR : 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR            : 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS         : 0
-    ports          :
-      - "9092:9092"
-      - "9094:9094"   # ← expose external port
+    
     networks       :
       - blog-net
     healthcheck    :
@@ -43,15 +41,12 @@ services :
       - discovery.type=single-node
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
-    ports          :
-      - "9200:9200"
-      - "9300:9300"
     networks       :
       - blog-net
     volumes        :
       - es-data:/usr/share/elasticsearch/data
     healthcheck    :
-      test         : [ "CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1" ]
+      test         : [ "CMD-SHELL", "curl -s http://elasticsearch:9200 >/dev/null || exit 1" ]
       interval     : 10s
       timeout      : 5s
       retries      : 10
@@ -60,8 +55,6 @@ services :
   # ─────────────────── Redis - Cache ────────────────────
   redis             :
     image    : redis:7-alpine
-    ports    :
-      - "16379:6379"
     networks :
       - blog-net
     volumes  :
@@ -74,8 +67,6 @@ services :
     container_name : post-db
     volumes        :
       - post-db:/var/lib/postgresql/data
-    ports          :
-      - "5001:5432"
     networks       :
       - blog-net
     environment    :
@@ -94,8 +85,6 @@ services :
     container_name : comment-db
     volumes        :
       - comment-db:/var/lib/postgresql/data
-    ports          :
-      - "5002:5432"
     networks       :
       - blog-net
     environment    :
@@ -114,8 +103,6 @@ services :
     container_name : analytics-db
     volumes        :
       - analytics-db:/var/lib/postgresql/data
-    ports          :
-      - "5003:5432"
     networks       :
       - blog-net
     environment    :
@@ -134,8 +121,6 @@ services :
       context    : ./post-service
       dockerfile : Dockerfile
     container_name : post-service
-    ports          :
-      - "4000:4000"
     networks       :
       - blog-net
     depends_on     :
@@ -157,8 +142,6 @@ services :
       context    : ./comment-service
       dockerfile : Dockerfile
     container_name : comment-service
-    ports          :
-      - "4001:4001"
     networks       :
       - blog-net
     depends_on     :
@@ -178,8 +161,6 @@ services :
       context    : ./analytics-service
       dockerfile : Dockerfile
     container_name : analytics-service
-    ports          :
-      - "4002:4002"
     networks       :
       - blog-net
     depends_on     :
