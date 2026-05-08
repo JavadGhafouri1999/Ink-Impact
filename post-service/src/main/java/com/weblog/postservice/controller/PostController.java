@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/posts")
+@RequestMapping("/api/posts")
 @Tag(name = "Post", description = "This is the api for managing posts")
 public class PostController {
 	private final PostServiceImpl postService;

@@ -1,0 +1,33 @@
+server :
+  port : 4004
+
+spring :
+  application :
+    name : api-gateway
+  main        :
+    banner-mode : off
+  cloud       :
+    compatibility-verifier :
+      enabled : false
+    gateway                :
+      routes :
+        - id         : post-service-route
+          uri        : http://post-service:4000
+          predicates :
+            - Path=/api/posts/**
+          filters    :
+            - StripPrefix=0
+        
+        - id         : api-docs-post-route
+          uri        : http://post-service:4000
+          predicates :
+            - Path=/api-docs/posts
+          filters    :
+            - StripPrefix=0
+        
+        - id         : comment-service-route
+          uri        : http://comment-service:4001
+          predicates :
+            - Path=/api/comments/**
+          filters    :
+            - StripPrefix=0

@@ -13,7 +13,7 @@ import java.time.Instant;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin/analytics")
+@RequestMapping("/api/admin/analytics")
 @RequiredArgsConstructor
 public class DashboardAnalyticsController {
 	
