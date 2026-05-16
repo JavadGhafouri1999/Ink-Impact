@@ -164,6 +164,8 @@ services :
       context    : ./auth-service
       dockerfile : Dockerfile
     container_name : auth-service
+    ports          :
+      - "4005:4005"
     networks       :
       - blog-net
     depends_on     :
@@ -182,6 +184,8 @@ services :
       context    : ./post-service
       dockerfile : Dockerfile
     container_name : post-service
+    ports          :
+      - "4000:4000"
     networks       :
       - blog-net
     depends_on     :
@@ -203,6 +207,8 @@ services :
       context    : ./comment-service
       dockerfile : Dockerfile
     container_name : comment-service
+    ports          :
+      - "4001:4001"
     networks       :
       - blog-net
     depends_on     :
@@ -222,6 +228,8 @@ services :
       context    : ./analytics-service
       dockerfile : Dockerfile
     container_name : analytics-service
+    ports          :
+      - "4002:4002"
     networks       :
       - blog-net
     depends_on     :
@@ -249,6 +257,7 @@ volumes  :
   post-db         :
   comment-db      :
   analytics-db    :
+  auth-db         :
   redis-post-data :
   es-data         :
 
