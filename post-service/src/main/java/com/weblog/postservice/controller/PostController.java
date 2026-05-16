@@ -10,6 +10,7 @@ import com.weblog.postservice.service.PostServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,13 +19,11 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/posts")
+@RequiredArgsConstructor
 @Tag(name = "Post", description = "This is the api for managing posts")
 public class PostController {
-	private final PostServiceImpl postService;
 	
-	public PostController(PostServiceImpl postService) {
-		this.postService = postService;
-	}
+	private final PostServiceImpl postService;
 	
 	@GetMapping
 	@Operation(summary = "Get all posts",

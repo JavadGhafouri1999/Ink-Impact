@@ -21,6 +21,7 @@ import com.weblog.postservice.model.PostSearchDocument;
 import com.weblog.postservice.repository.PostRepository;
 import com.weblog.postservice.repository.PostSearchRepository;
 import com.weblog.postservice.utils.SlugGenerator;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -42,22 +43,13 @@ import java.util.UUID;
 
 @Service // 1. Add this to make it a Spring Bean
 @Slf4j
+@RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
 	
 	private final PostRepository          postRepo; // 2. Make it final for safety
 	private final PostSearchRepository    repo;
 	private final ElasticsearchOperations operations;
 	private final KafkaProducer           kafkaProducer;
-	
-	public PostServiceImpl(PostRepository postRepo,
-	                       PostSearchRepository repo,
-	                       ElasticsearchOperations operations,
-	                       KafkaProducer kafkaProducer) {
-		this.postRepo      = postRepo;
-		this.repo          = repo;
-		this.operations    = operations;
-		this.kafkaProducer = kafkaProducer;
-	}
 	
 	public void indexPost(Post post) {
 		PostSearchDocument doc = new PostSearchDocument();

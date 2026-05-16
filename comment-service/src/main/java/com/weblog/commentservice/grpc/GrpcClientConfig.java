@@ -1,6 +1,7 @@
 package com.weblog.commentservice.grpc;
 
-import com.weblog.postservice.grpc.PostServiceGrpc;
+
+import com.weblog.commentservice.post.grpc.PostServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.springframework.context.annotation.Bean;
@@ -18,7 +19,8 @@ public class GrpcClientConfig {
 	}
 	
 	@Bean
-	public PostServiceGrpc.PostServiceBlockingStub postServiceStub(ManagedChannel postServiceChannel) {
+	public PostServiceGrpc.PostServiceBlockingStub postServiceStub(
+			ManagedChannel postServiceChannel) {
 		return PostServiceGrpc.newBlockingStub(postServiceChannel);
 	}
 }

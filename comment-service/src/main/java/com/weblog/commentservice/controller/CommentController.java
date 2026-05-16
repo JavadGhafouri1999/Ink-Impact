@@ -6,6 +6,7 @@ import com.weblog.commentservice.dto.response.CommentResponseDto;
 import com.weblog.commentservice.dto.response.PagedResponse;
 import com.weblog.commentservice.service.CommentService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,13 +17,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/comments")
+@RequiredArgsConstructor
 public class CommentController {
 	
 	private final CommentService commentService;
-	
-	public CommentController(CommentService commentService) {
-		this.commentService = commentService;
-	}
 	
 	@PostMapping
 	public ResponseEntity <CommentResponseDto> create(

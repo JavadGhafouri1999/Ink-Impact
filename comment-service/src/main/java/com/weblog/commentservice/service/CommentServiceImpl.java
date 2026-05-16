@@ -8,9 +8,10 @@ import com.weblog.commentservice.dto.response.PagedResponse;
 import com.weblog.commentservice.exception.CommentNotFoundException;
 import com.weblog.commentservice.kafka.KafkaProducer;
 import com.weblog.commentservice.model.Comment;
+import com.weblog.commentservice.post.grpc.PostExistsRequest;
+import com.weblog.commentservice.post.grpc.PostServiceGrpc;
 import com.weblog.commentservice.repository.CommentRepository;
-import com.weblog.postservice.grpc.PostExistsRequest;
-import com.weblog.postservice.grpc.PostServiceGrpc;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,19 +23,12 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
 	
 	private final CommentRepository                       commentRepo;
 	private final PostServiceGrpc.PostServiceBlockingStub postStub;
 	private final KafkaProducer                           kafkaProducer;
-	
-	public CommentServiceImpl(CommentRepository commentRepo,
-	                          PostServiceGrpc.PostServiceBlockingStub postStub,
-	                          KafkaProducer kafkaProducer) {
-		this.commentRepo   = commentRepo;
-		this.postStub      = postStub;
-		this.kafkaProducer = kafkaProducer;
-	}
 	
 	@Override
 	@Transactional(readOnly = true)
