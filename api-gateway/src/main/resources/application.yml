@@ -1,22 +1,27 @@
-server :
-  port : 4004
+server  :
+  port : 4004   # Your gateway port
 
-spring :
+spring  :
   application :
     name : api-gateway
+  
   main        :
     banner-mode : off
+  
   cloud       :
     compatibility-verifier :
       enabled : false
+    
     gateway                :
       routes :
+        # ===================== POST SERVICE =====================
         - id         : post-service-route
           uri        : http://post-service:4000
           predicates :
             - Path=/api/posts/**
           filters    :
             - StripPrefix=0
+            - JwtAuthFilter
         
         - id         : api-docs-post-route
           uri        : http://post-service:4000
@@ -24,10 +29,37 @@ spring :
             - Path=/api-docs/posts
           filters    :
             - StripPrefix=0
+            - JwtAuthFilter
         
+        # ===================== COMMENT SERVICE =====================
         - id         : comment-service-route
           uri        : http://comment-service:4001
           predicates :
             - Path=/api/comments/**
           filters    :
             - StripPrefix=0
+            - JwtAuthFilter
+  
+  # ===================== JWT VALIDATION =====================
+  security    :
+    oauth2 :
+      resourceserver :
+        jwt :
+          issuer-uri  : http://keycloak:8080/realms/blog-realm
+          jwk-set-uri : http://keycloak:8080/realms/blog-realm/protocol/openid-connect/certs
+  
+  # ========================== Kafka ==========================
+  kafka       :
+    bootstrap-servers : kafka:9092
+    producer          :
+      key-serializer   : org.apache.kafka.common.serialization.StringSerializer
+      value-serializer : org.springframework.kafka.support.serializer.JsonSerializer
+      properties       :
+        spring.json.add.type.headers : false
+    admin             :
+      auto-create : true
+
+logging :
+  level :
+    org.springframework.security : INFO
+    com.yourapp.gateway          : DEBUG
