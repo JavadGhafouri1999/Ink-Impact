@@ -1,5 +1,6 @@
 package com.weblog.apigateway.config;
 
+import com.weblog.apigateway.kafka.UserActivityProducer;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -27,8 +28,11 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
   
   private static final Logger log = LoggerFactory.getLogger(GatewayAuthFilter.class);
   
-  private final SecretKey      secretKey;
+  private final SecretKey secretKey;
+  
   private final AntPathMatcher matcher = new AntPathMatcher();
+  
+  private final UserActivityProducer activityProducer;
   
   // ── Paths ──────────────────────────────────────────────
   private static final List <String> PUBLIC_GET_PATHS = List.of(
@@ -47,9 +51,11 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
 		  "/api/analytics/**", Set.of("ADMIN", "OWNER"));
   
   // ── Helper-classes ─────────────────────────────────────
-  public GatewayAuthFilter(@Value("${jwt.secret}") String secret) {
-	this.secretKey = Keys.
+  public GatewayAuthFilter(@Value("${jwt.secret}") String secret,
+						   UserActivityProducer activityProducer) {
+	this.secretKey        = Keys.
 			hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+	this.activityProducer = activityProducer;
   }
   
   private boolean matches(String path, List <String> patterns) {
@@ -113,7 +119,16 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
 	  return exchange.getResponse().setComplete();
 	}
 	//* What is your role? USER-AUTHOR-ADMIN-OWNER
-	String role = claims.get("role", String.class);
+	String role     = claims.get("role", String.class);
+	String userId   = claims.getSubject();
+	String username = claims.get("username", String.class);
+	String ip = exchange.getRequest().getRemoteAddress() != null
+				? exchange.getRequest()
+						  .getRemoteAddress().getAddress().getHostAddress()
+				: "unknown";
+	
+	String userAgent = exchange.getRequest().getHeaders()
+							   .getFirst("User-Agent");
 	
 	// ── Role-based-paths ────────────────────────────────────
 	//* checks whether the user’s role is allowed to access the path they are hitting
@@ -136,6 +151,14 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
 		return exchange.getResponse().setComplete();
 	  }
 	}
+	
+	// ── Send User Activity Event ────────────────────────────
+	activityProducer.sendActivityEvent(
+			userId,
+			List.of(role),
+			path,
+			method,
+			ip, userAgent);
 	
 	// ── Forward-user-info ───────────────────────────────────
 	ServerWebExchange mutated = exchange

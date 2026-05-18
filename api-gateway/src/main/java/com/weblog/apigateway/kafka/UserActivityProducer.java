@@ -12,28 +12,30 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class UserActivityProducer {
-	private final        KafkaTemplate <String, Object> kafkaTemplate;
-	private static final String                         TOPIC = "user-activity";
+  
+  private final KafkaTemplate <String, Object> kafkaTemplate;
+  
+  private static final String TOPIC = "user-activity";
+  
+  
+  public void sendActivityEvent(
+		  String userId,
+		  List <String> roles,
+		  String path,
+		  String method,
+		  String ip,
+		  String userAgent) {
+	UserActivityEvent event = new UserActivityEvent(
+			userId,
+			roles,
+			path,
+			method,
+			ip,
+			userAgent,
+			Instant.now().toString()
+	);
 	
-	
-	public void sendActivityEvent(
-			String userId,
-			List <String> roles,
-			String path,
-			String method,
-			String ip,
-			String userAgent) {
-		UserActivityEvent event = new UserActivityEvent(
-				userId,
-				roles,
-				path,
-				method,
-				ip,
-				userAgent,
-				Instant.now().toString()
-		);
-		
-		kafkaTemplate.send(TOPIC, userId, event);
-		log.debug("Sent UserActivityEvent: {}", event);
-	}
+	kafkaTemplate.send(TOPIC, userId, event);
+	log.debug("Sent UserActivityEvent: {}", event);
+  }
 }
