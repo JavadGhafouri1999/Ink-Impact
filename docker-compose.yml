@@ -67,78 +67,6 @@ services :
       - redis-post-data:/data
     restart  : always
   
-  # ───────────────────── Keycloak-db ──────────────────────
-  keycloak-db       :
-    image          : postgres:17-alpine
-    container_name : keycloak-db
-    restart        : unless-stopped
-    environment    :
-      POSTGRES_DB       : keycloak
-      POSTGRES_USER     : ${KEYCLOAK_DB_USER}
-      POSTGRES_PASSWORD : ${KEYCLOAK_DB_PASSWORD}
-    volumes        :
-      - keycloak-db:/var/lib/postgresql/data
-    networks       :
-      - blog-net
-    healthcheck    :
-      test     : [ "CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER} -d keycloak" ]
-      interval : 10s
-      timeout  : 5s
-      retries  : 5
-  
-  
-  # ─────────────────────── Keycloak ───────────────────────
-  keycloak          :
-    image          : quay.io/keycloak/keycloak:24.0
-    container_name : keycloak
-    restart        : unless-stopped
-    
-    # Start in optimized mode and import our realm JSON
-    command        : start --optimized --import-realm
-    
-    environment    :
-      # ===== Database config =====
-      KC_DB                   : postgres
-      KC_DB_URL_HOST          : keycloak-db
-      KC_DB_URL_DATABASE      : keycloak
-      KC_DB_USERNAME          : ${KEYCLOAK_DB_USER}
-      KC_DB_PASSWORD          : ${KEYCLOAK_DB_PASSWORD}
-      
-      # ===== Admin user for Keycloak console =====
-      KEYCLOAK_ADMIN          : ${KEYCLOAK_ADMIN}
-      KEYCLOAK_ADMIN_PASSWORD : ${KEYCLOAK_ADMIN_PASSWORD}
-      
-      # ===== Host / HTTP settings =====
-      KC_HOSTNAME             : localhost
-      KC_HOSTNAME_STRICT      : false
-      KC_HTTP_ENABLED         : true
-      
-      # Enable health + metrics for monitoring
-      KC_HEALTH_ENABLED       : true
-      KC_METRICS_ENABLED      : true
-    
-    ports          :
-      - "8080:8080"  # Keycloak UI + APIs
-    
-    networks       :
-      - blog-net
-    
-    volumes        :
-      # Mount our realm export into the import directory
-      - ./keycloak-realm-export.json:/opt/keycloak/data/import/realm.json:ro
-    
-    depends_on     :
-      keycloak-db :
-        condition : service_healthy
-    
-    healthcheck    :
-      test         : [ "CMD", "curl", "-f", "http://localhost:8080/health/ready" ]
-      interval     : 30s
-      timeout      : 10s
-      retries      : 5
-      start_period : 60s
-  
-  
   # ─────────────────── Post Database ────────────────────
   post-db           :
     image          : postgres:17-alpine
@@ -219,7 +147,7 @@ services :
       timeout  : 5s
       retries  : 5
     
-    # ──────────────────── Post Service ────────────────────
+    # ──────────────────── Auth Service ────────────────────
   auth-service      :
     build          :
       context    : ./auth-service
@@ -235,7 +163,7 @@ services :
       elasticsearch :
         condition : service_healthy
     environment    :
-      SPRING_DATASOURCE_URL      : jdbc:postgresql://post-db:5432/auth_db
+      SPRING_DATASOURCE_URL      : jdbc:postgresql://auth-db:5432/auth_db
       SPRING_DATASOURCE_USERNAME : ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD : ${POSTGRES_PASSWORD}
   
