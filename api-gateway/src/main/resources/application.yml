@@ -2,6 +2,13 @@ server  :
   port : 4004
 
 spring  :
+  
+  data        :
+    redis :
+      host    : redis
+      port    : 6379
+      timeout : 2000ms
+  
   application :
     name : api-gateway
   
@@ -12,15 +19,36 @@ spring  :
     compatibility-verifier :
       enabled : false
     
+    
+    
     gateway                :
       routes :
         # ===================== AUTH SERVICE =====================
+        # 1. LOGIN (IP-based)
+        - id         : auth-login-route
+          uri        : http://auth-service:4005
+          predicates :
+            - Path=/api/auth/login
+          filters    :
+            - StripPrefix=0
+            - name : RequestRateLimiter
+              args :
+                key-resolver                     : "#{@smartKeyResolver}"
+                redis-rate-limiter.replenishRate : 3
+                redis-rate-limiter.burstCapacity : 5
+        
+        # 2. OTHER AUTH ENDPOINTS (User-based)
         - id         : auth-service-route
           uri        : http://auth-service:4005
           predicates :
             - Path=/api/auth/**
           filters    :
             - StripPrefix=0
+            - name : RequestRateLimiter
+              args :
+                key-resolver                     : "#{@smartKeyResolver}"
+                redis-rate-limiter.replenishRate : 20
+                redis-rate-limiter.burstCapacity : 40
         
         # ===================== POST SERVICE =====================
         - id         : post-service-route
@@ -29,6 +57,11 @@ spring  :
             - Path=/api/posts/**
           filters    :
             - StripPrefix=0
+            - name : RequestRateLimiter
+              args :
+                key-resolver                     : "#{@smartKeyResolver}"
+                redis-rate-limiter.replenishRate : 10
+                redis-rate-limiter.burstCapacity : 20
         
         - id         : api-docs-post-route
           uri        : http://post-service:4000
@@ -44,6 +77,11 @@ spring  :
             - Path=/api/comments/**
           filters    :
             - StripPrefix=0
+            - name : RequestRateLimiter
+              args :
+                key-resolver                     : "#{@smartKeyResolver}"
+                redis-rate-limiter.replenishRate : 10
+                redis-rate-limiter.burstCapacity : 20
         
         # ==================== ANALYTICS SERVICE ====================
         - id         : analytics-service-route
@@ -52,6 +90,11 @@ spring  :
             - Path=/api/analytics/**
           filters    :
             - StripPrefix=0
+            - name : RequestRateLimiter
+              args :
+                key-resolver                     : "#{@smartKeyResolver}"
+                redis-rate-limiter.replenishRate : 10
+                redis-rate-limiter.burstCapacity : 20
   
   # ========================== Kafka ==========================
   kafka       :
