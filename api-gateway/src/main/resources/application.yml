@@ -22,7 +22,9 @@ spring  :
     
     
     gateway                :
-      routes :
+      forwarded :
+        enabled : true
+      routes    :
         # ===================== AUTH SERVICE =====================
         # 1. LOGIN (IP-based)
         - id         : auth-login-route

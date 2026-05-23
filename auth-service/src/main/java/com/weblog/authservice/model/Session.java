@@ -10,42 +10,41 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "sessions")
+@Table(name = "sessions",
+	   indexes = {@Index(name = "idx_session_refresh", columnList = "refreshToken"), @Index(
+			   name = "idx_session_user_active", columnList = "user_id, active")})
 @Getter
 @Setter
 @NoArgsConstructor
 public class Session {
-  
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private UUID id;
-  
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id", nullable = false)
-  private User user;
-  
-  @Column(nullable = false, unique = true)
-  private String refreshToken;
-  
-  private String userAgent;
-  
-  private String ipAddress;
-  
-  @Column(nullable = false)
-  private boolean active;
-  
-  @CreationTimestamp
-  private Instant createdAt;
-  
-  private Instant expiresAt;
-  
-  public Session(boolean active, Instant expiresAt,
-				 String ipAddress, String refreshToken, User user, String userAgent) {
-	this.active       = active;
-	this.expiresAt    = expiresAt;
-	this.ipAddress    = ipAddress;
-	this.refreshToken = refreshToken;
-	this.user         = user;
-	this.userAgent    = userAgent;
-  }
+
+@Id
+@GeneratedValue(strategy = GenerationType.UUID)
+private UUID id;
+
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "user_id", nullable = false)
+private User user;
+
+private String userAgent;
+
+private String ipAddress;
+
+@Column(nullable = false)
+private boolean active;
+
+@CreationTimestamp
+private Instant createdAt;
+
+private Instant expiresAt;
+
+private Instant revokedAt;
+
+public Session(boolean active, Instant expiresAt, String ipAddress, User user, String userAgent) {
+  this.active = active;
+  this.expiresAt = expiresAt;
+  this.ipAddress = ipAddress;
+  this.user = user;
+  this.userAgent = userAgent;
+}
 }
