@@ -11,13 +11,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(
-		name = "users",
-		indexes = {
-				@Index(name = "idx_user_email", columnList = "email"),
-				@Index(name = "idx_user_username", columnList = "username"),
-				@Index(name = "idx_user_phone", columnList = "phone")
-		})
+@Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor

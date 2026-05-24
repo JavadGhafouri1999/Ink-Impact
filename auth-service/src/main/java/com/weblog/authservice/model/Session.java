@@ -10,9 +10,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "sessions",
-	   indexes = {@Index(name = "idx_session_refresh", columnList = "refreshToken"), @Index(
-			   name = "idx_session_user_active", columnList = "user_id, active")})
+@Table(name = "sessions")
 @Getter
 @Setter
 @NoArgsConstructor

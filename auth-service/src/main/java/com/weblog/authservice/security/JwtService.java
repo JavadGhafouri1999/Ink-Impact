@@ -25,10 +25,10 @@ private static final Logger log = LoggerFactory.getLogger(JwtService.class);
 @Value("${jwt.secret}")
 private String secret;
 
-@Value("${access-token-expiration}")
+@Value("${jwt.access-token-expiration}")
 private long accessTokenExpMs;
 
-@Value("${refresh-token-expiration}")
+@Value("${jwt.refresh-token-expiration}")
 private long refreshTokenExpMs;
 
 private SecretKey getKey() {

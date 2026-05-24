@@ -13,4 +13,6 @@ UserResponse register(RegisterRequest request);
 AuthResponse login(LoginRequest request, HttpServletRequest httpRequest);
 
 AuthResponse refresh(String refreshToken);
+
+void logout(String refreshToken);
 }

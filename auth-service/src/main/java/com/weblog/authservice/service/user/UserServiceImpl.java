@@ -80,7 +80,6 @@ public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) 
   String accessToken = jwtService.generateAccessToken(user, session);
   String refreshToken = jwtService.generateRefreshToken(user, session);
 
-
   return new AuthResponse(
 		  UserMapper.toDto(user),
 		  accessToken,
@@ -90,6 +89,7 @@ public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) 
 @Override
 @Transactional
 public AuthResponse refresh(String oldRefreshToken) {
+
   if(!jwtService.validateToken(oldRefreshToken)) {
 	throw new UnauthorizedException("Invalid refresh token");
   }
@@ -106,5 +106,11 @@ public AuthResponse refresh(String oldRefreshToken) {
 		  newAccessToken,
 		  newRefreshToken
   );
+}
+
+@Override
+@Transactional
+public void logout(String refreshToken) {
+  sessionService.logout(refreshToken);
 }
 }

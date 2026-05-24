@@ -52,7 +52,7 @@ public boolean validateSession(String refreshToken) {
 
   UUID sessionId = jwtService.extractSessionId(refreshToken);
 
-  return sessionRepo.findBySessionIdAndActive(sessionId, true).map(session -> {
+  return sessionRepo.findByIdAndActive(sessionId, true).map(session -> {
 	if(session.getExpiresAt().isBefore(Instant.now())) {
 	  session.setActive(false);
 	  sessionRepo.save(session);
@@ -77,7 +77,7 @@ public Session refreshSession(String oldRefreshToken) {
 
   UUID oldSessionId = jwtService.extractSessionId(oldRefreshToken);
 
-  return sessionRepo.findBySessionId(oldSessionId).map(oldSession -> {
+  return sessionRepo.findById(oldSessionId).map(oldSession -> {
 	// Invalidate old session
 	oldSession.setActive(false);
 	oldSession.setRevokedAt(Instant.now());
@@ -94,14 +94,15 @@ public Session refreshSession(String oldRefreshToken) {
 
 @Override
 @Transactional
-public void logout(String refreshToken) {
+public void logout(String token) {
 
-  if(!jwtService.validateToken(refreshToken)) {
+  if(!jwtService.validateToken(token)) {
 	throw new UnauthorizedException("Invalid refresh token");
   }
 
-  UUID sessionId = jwtService.extractSessionId(refreshToken);
-  sessionRepo.findBySessionId(sessionId).ifPresent(session -> {
+  UUID sessionId = jwtService.extractSessionId(token);
+
+  sessionRepo.findById(sessionId).ifPresent(session -> {
 	session.setActive(false);
 	session.setRevokedAt(Instant.now());
 	sessionRepo.save(session);

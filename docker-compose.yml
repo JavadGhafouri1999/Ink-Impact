@@ -166,6 +166,7 @@ services :
       SPRING_DATASOURCE_URL      : jdbc:postgresql://auth-db:5432/auth_db
       SPRING_DATASOURCE_USERNAME : ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD : ${POSTGRES_PASSWORD}
+      JWT_SECRET                 : ${JWT_SECRET}
   
   # ──────────────────── Post Service ────────────────────
   post-service      :
@@ -240,6 +241,8 @@ services :
       - "4004:4004"
     networks       :
       - blog-net
+    environment    :
+      - JWT_SECRET=${JWT_SECRET}
 
 # ───────────────────────── Others ─────────────────────────
 volumes  :
