@@ -13,12 +13,13 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PostAnalytics {
-	private UUID          id;
-	private String        postId;
-	private String        title;
-	private String        slug;
-	private String        authorId;
-	private List <String> tags;
-	private Instant       createdAt;
-	private LocalDateTime ingestedAt;
+
+  private UUID          id;
+  private String        postId;
+  private String        title;
+  private String        slug;
+  private String        authorId;
+  private List <String> tags;
+  private Instant       createdAt;
+  private LocalDateTime ingestedAt;
 }

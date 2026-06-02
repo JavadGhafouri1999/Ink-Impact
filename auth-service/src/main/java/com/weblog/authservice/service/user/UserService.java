@@ -8,11 +8,11 @@ import jakarta.servlet.http.HttpServletRequest;
 
 public interface UserService {
 
-UserResponse register(RegisterRequest request);
+  UserResponse register(RegisterRequest request);
 
-AuthResponse login(LoginRequest request, HttpServletRequest httpRequest);
+  AuthResponse login(LoginRequest request, HttpServletRequest httpRequest);
 
-AuthResponse refresh(String refreshToken);
+  AuthResponse refresh(String refreshToken);
 
-void logout(String refreshToken);
+  void logout(String refreshToken);
 }

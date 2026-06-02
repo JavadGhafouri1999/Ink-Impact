@@ -6,6 +6,6 @@ import org.springframework.data.elasticsearch.repository.ElasticsearchRepository
 import java.util.List;
 
 public interface PostSearchRepository extends ElasticsearchRepository <PostSearchDocument, String> {
-	
-	List <PostSearchDocument> findByTitleContainingOrContentContaining(String title, String content);
+
+  List <PostSearchDocument> findByTitleContainingOrContentContaining(String title, String content);
 }

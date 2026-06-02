@@ -15,36 +15,36 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class PostAnalyticsService extends BatchIngestor <PostAnalytics> {
-	
-	private final PostAnalyticsRepository repository;
-	
-	
-	@Override
-	protected PostAnalytics convert(byte[] payload) {
-		try {
-			PostEvent e = PostEvent.parseFrom(payload);
-			return PostAnalytics.builder()
-			                    .id(UUID.randomUUID())
-			                    .postId(e.getId())
-			                    .title(e.getTitle())
-			                    .slug(e.getSlug())
-			                    .authorId(e.getAuthorId())
-			                    .tags(e.getTagsList())
-			                    .createdAt(Instant.ofEpochSecond(e.getCreatedAt().getSeconds()))
-			                    .ingestedAt(LocalDateTime.now())
-			                    .build();
-		} catch(Exception ex) {
-			throw new RuntimeException("Failed to parse PostEvent", ex);
-		}
+
+  private final PostAnalyticsRepository repository;
+
+
+  @Override
+  protected PostAnalytics convert(byte[] payload) {
+	try {
+	  PostEvent e = PostEvent.parseFrom(payload);
+	  return PostAnalytics.builder()
+						  .id(UUID.randomUUID())
+						  .postId(e.getId())
+						  .title(e.getTitle())
+						  .slug(e.getSlug())
+						  .authorId(e.getAuthorId())
+						  .tags(e.getTagsList())
+						  .createdAt(Instant.ofEpochSecond(e.getCreatedAt().getSeconds()))
+						  .ingestedAt(LocalDateTime.now())
+						  .build();
+	} catch(Exception ex) {
+	  throw new RuntimeException("Failed to parse PostEvent", ex);
 	}
-	
-	@Override
-	protected void saveBatch(List <PostAnalytics> batch) {
-		repository.batchSave(batch);
-	}
-	
-	@Override
-	protected String name() {
-		return "PostAnalytics";
-	}
+  }
+
+  @Override
+  protected void saveBatch(List <PostAnalytics> batch) {
+	repository.batchSave(batch);
+  }
+
+  @Override
+  protected String name() {
+	return "PostAnalytics";
+  }
 }

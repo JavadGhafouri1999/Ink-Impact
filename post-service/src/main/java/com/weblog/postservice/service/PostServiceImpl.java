@@ -14,21 +14,18 @@ import com.weblog.postservice.dto.response.PostSummaryResponse;
 import com.weblog.postservice.exception.DuplicateTitleException;
 import com.weblog.postservice.exception.PostNotFoundException;
 import com.weblog.postservice.exception.UnauthorizedException;
-import com.weblog.postservice.kafka.KafkaProducer;
+import com.weblog.postservice.listeners.PostCreatedEvent;
 import com.weblog.postservice.model.Post;
 import com.weblog.postservice.model.PostSearchDocument;
 import com.weblog.postservice.repository.PostRepository;
 import com.weblog.postservice.repository.PostSearchRepository;
 import com.weblog.postservice.utils.SlugGenerator;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,167 +36,228 @@ import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Service // 1. Add this to make it a Spring Bean
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+@Service
 @Slf4j
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
 
-  private final PostRepository postRepo; // 2. Make it final for safety
-  private final PostSearchRepository repo;
-  private final ElasticsearchOperations operations;
-  private final KafkaProducer kafkaProducer;
+  private final PostRepository            postRepo;
+  private final PostSearchRepository      repo;
+  private final ElasticsearchOperations   operations;
+  private final ApplicationEventPublisher eventPublisher;
 
   public void indexPost(Post post) {
-    PostSearchDocument doc = new PostSearchDocument();
-    doc.setId(post.getId().toString());
-    doc.setTitle(post.getTitle());
-    doc.setContent(post.getContent());
-    doc.setTags(post.getTags());
-    doc.setCreatedAt(
-        post.getCreatedAt() != null
-            ? post.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant()
-            : Instant.now());
-    repo.save(doc);
+	PostSearchDocument doc = new PostSearchDocument();
+	doc.setId(post.getId().toString());
+	doc.setTitle(post.getTitle());
+	doc.setContent(post.getContent());
+	doc.setAuthorId(post.getAuthorId().toString());
+	doc.setTags(post.getTags());
+	doc.setSlug(post.getSlug());
+	doc.setBannerImageUrl(post.getBannerImageUrl());
+	doc.setImages(post.getImages());
+	doc.setCreatedAt(post.getCreatedAt() != null ? post.getCreatedAt() : LocalDateTime.now());
+	repo.save(doc);
   }
 
-  private Post findPostAndVerifyOwnership(UUID postId, UUID authorId) {
-    Post post = postRepo.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
+  private Post findPostAndVerifyOwnership(UUID postId, UUID authorId, String role) {
+	Post post = postRepo.findById(postId)
+						.orElseThrow(() -> new PostNotFoundException(postId));
 
-    if (!post.getAuthorId().equals(authorId)) {
-      throw new UnauthorizedException("You can only modify your own posts");
-    }
+	boolean isAdmin = role.equals("ADMIN") || role.equals("OWNER");
 
-    return post;
+	if(!isAdmin && !post.getAuthorId().equals(authorId)) {
+	  throw new UnauthorizedException("You can only modify your own posts");
+	}
+
+	return post;
   }
 
   @Override
   @Transactional // Good for write operations
   public PostResponseDto create(PostCreateRequestDto request, UUID authorId, String role) {
-    // 1. Authorization check
-    if (!role.equals("AUTHOR") && !role.equals("ADMIN") && !role.equals("OWNER")) {
-      throw new UnauthorizedException("You are not allowed to create posts");
-    }
+	// 1. Authorization check
+	if(!role.equals("AUTHOR") && !role.equals("ADMIN") && !role.equals("OWNER")) {
+	  throw new UnauthorizedException("You are not allowed to create posts");
+	}
 
-    try {
-      Post post = postRepo.save(PostMapper.toModel(request, authorId));
-      indexPost(post);
+	try {
+	  Post post = PostMapper.toModel(request, authorId);
 
-      // kafka-Event
-      kafkaProducer.sendEvent(post);
+	  Post savedPost = postRepo.save(post);
 
-      return PostMapper.toDto(post);
-    } catch (DataIntegrityViolationException e) {
-      throw new DuplicateTitleException(request.title());
-    }
+	  // publish event AFTER DB save
+	  eventPublisher.publishEvent(new PostCreatedEvent(savedPost));
+
+	  return PostMapper.toDto(savedPost);
+	} catch(DataIntegrityViolationException e) {
+	  throw new DuplicateTitleException(request.title());
+	}
   }
 
   @Override
   @Transactional
-  @CachePut(value = "posts", key = "#result.id")
+  @Caching(evict = {
+		  @CacheEvict(value = "postsById", key = "#id"),
+		  @CacheEvict(value = "postsBySlug", allEntries = true) // Safer if slug could change
+  })
   public PostResponseDto update(UUID id, UUID authorId, PostUpdateRequestDto request, String role) {
 
-    if (!role.equals("AUTHOR") && !role.equals("ADMIN") && !role.equals("OWNER")) {
-      throw new UnauthorizedException("You are not allowed to update posts");
-    }
+	if(!role.equals("AUTHOR") && !role.equals("ADMIN") && !role.equals("OWNER")) {
+	  throw new UnauthorizedException("You are not allowed to update posts");
+	}
 
-    Post post = findPostAndVerifyOwnership(id, authorId);
+	Post post = findPostAndVerifyOwnership(id, authorId, role);
 
-    if (request.title() != null) {
-      // Only check duplicate if title actually changed
-      if (!request.title().equals(post.getTitle()) && postRepo.existsByTitle(request.title())) {
-        throw new DuplicateTitleException(request.title());
-      }
-      post.setTitle(request.title());
-      post.setSlug(SlugGenerator.generateSlug(request.title()));
-    }
-    if (request.tags() != null) {
-      post.setTags(request.tags());
-    }
-    if (request.content() != null) {
-      post.setContent(request.content());
-    }
-    if (request.published() != null) {
-      post.setPublished(request.published());
-    }
-    Post updated = postRepo.save(post);
-    indexPost(updated);
-    return PostMapper.toDto(updated);
+	if(request.title() != null) {
+	  // Only check duplicate if title actually changed
+	  if(!request.title().equals(post.getTitle()) && postRepo.existsByTitle(request.title())) {
+		throw new DuplicateTitleException(request.title());
+	  }
+	  post.setTitle(request.title());
+	  post.setSlug(SlugGenerator.generateSlug(request.title()));
+	}
+	if(request.tags() != null) {
+	  post.setTags(request.tags());
+	}
+	if(request.content() != null) {
+	  post.setContent(request.content());
+	}
+	if(request.bannerImageUrl() != null) {
+	  post.setBannerImageUrl(request.bannerImageUrl());
+	}
+	if(request.images() != null) {
+	  post.setImages(request.images());
+	}
+	if((role.equals("ADMIN") || role.equals("OWNER")) && request.status() != null) {
+	  post.setStatus(request.status());
+	}
+	Post updated = postRepo.saveAndFlush(post);
+
+	indexPost(updated);
+
+	return PostMapper.toDto(updated);
   }
 
   @Override
   // Do NOT put @Transactional on simple reads
-  public PagedResponse<PostSummaryResponse> getPosts(int page, int size, String sortBy) {
-    Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
-    Page<PostSummaryResponse> result =
-        postRepo.findByPublishedTrue(pageable).map(PostMapper::toSummaryDto);
+  public PagedResponse <PostSummaryResponse> getPublishedPosts(int page, int size, String sortBy) {
 
-    return PagedResponse.from(result);
+	Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
+	Page <PostSummaryResponse> result =
+			postRepo.findByStatus(Post.PostStatus.PUBLISHED, pageable).map(PostMapper::toSummaryDto);
+	return PagedResponse.from(result);
+  }
+
+  @Override
+  public PagedResponse <PostSummaryResponse> getAllPosts(String role, int page, int size, String sortBy) {
+
+	if(!role.equals("ADMIN") && !role.equals("OWNER")) {
+	  throw new UnauthorizedException("You are not allowed to update posts");
+	}
+
+	Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
+	Page <PostSummaryResponse> result =
+			postRepo.findAll(pageable).map(PostMapper::toSummaryDto);
+	return PagedResponse.from(result);
   }
 
   @Override
   @Transactional(readOnly = true) // Hibernate: "Don't bother tracking changes"
-  @Cacheable(value = "posts", key = "#id")
+  @Cacheable(value = "postsById", key = "#id")
   public PostResponseDto getById(UUID id) {
-    log.debug("Cache miss - request send to DB ID: {}", id);
-    Post post = postRepo.findById(id).orElseThrow(() -> new PostNotFoundException(id));
-    return PostMapper.toDto(post); // Nothing gets saved, just reading
+	log.debug("Cache miss - request send to DB ID: {}", id);
+	Post post = postRepo.findById(id).orElseThrow(() -> new PostNotFoundException(id));
+	return PostMapper.toDto(post); // Nothing gets saved, just reading
   }
 
   @Override
   @Transactional(readOnly = true)
   public boolean existsById(UUID id) {
-    return postRepo.existsById(id);
+	return postRepo.existsById(id);
   }
 
   @Override
   @Transactional(readOnly = true)
-  @Cacheable(value = "posts", key = "#slug")
+  @Cacheable(value = "postsBySlug", key = "#slug")
   public PostResponseDto getBySlug(String slug) {
-    log.debug("Cache miss - fetching post by slug from DB: {}", slug);
-    Post post = postRepo.findBySlug(slug).orElseThrow(() -> new PostNotFoundException(slug));
-    return PostMapper.toDto(post);
+	log.debug("Cache miss - fetching post by slug from DB: {}", slug);
+	Post post = postRepo.findBySlugAndStatus(slug, Post.PostStatus.PUBLISHED)
+						.orElseThrow(() -> new PostNotFoundException(slug));
+	return PostMapper.toDto(post);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public PagedResponse<PostSummaryResponse> getByAuthorId(
-      UUID authorId, int page, int size, String sortBy) {
-    Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
+  public PagedResponse <PostSummaryResponse> getByAuthorId(
+		  UUID authorId, int page, int size, String sortBy) {
+	Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
 
-    Page<Post> posts = postRepo.findByAuthorId(authorId, pageable);
+	Page <Post> posts = postRepo.findByAuthorIdAndStatus(authorId, Post.PostStatus.PUBLISHED, pageable);
 
-    return PagedResponse.from(posts.map(PostMapper::toSummaryDto));
+	return PagedResponse.from(posts.map(PostMapper::toSummaryDto));
   }
 
   @Override
   @Transactional(readOnly = true)
-  public PagedResponse<PostSummaryResponse> getByTag(String tag, int page, int size) {
-    Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-    Page<Post> posts = postRepo.findByTag(tag, pageable);
-    return PagedResponse.from(posts.map(PostMapper::toSummaryDto));
+  public PagedResponse <PostSummaryResponse> getByTag(String tag, int page, int size) {
+	Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+	Page <Post> posts = postRepo.findPublishedByTag(tag, pageable);
+	return PagedResponse.from(posts.map(PostMapper::toSummaryDto));
   }
 
   @Override
   @Transactional
-  @CacheEvict(value = "posts", key = "#id")
+  @Caching(evict = {
+		  @CacheEvict(value = "postsById", key = "#id"),
+		  @CacheEvict(value = "postsBySlug", allEntries = true)
+  })
   public void deletePost(UUID authorId, UUID id, String role) {
 
-    if (!role.equals("AUTHOR") && !role.equals("ADMIN") && !role.equals("OWNER")) {
-      throw new UnauthorizedException("You are not allowed to delete posts");
-    }
+	if(!role.equals("AUTHOR") && !role.equals("ADMIN") && !role.equals("OWNER")) {
+	  throw new UnauthorizedException("You are not allowed to delete posts");
+	}
 
-    Post post = findPostAndVerifyOwnership(id, authorId);
-    postRepo.delete(post);
+	Post post = findPostAndVerifyOwnership(id, authorId, role);
+	postRepo.delete(post);
   }
 
-  public List<PostSearchDocument> search(String q) {
-    var query =
-        NativeQuery.builder()
-            .withQuery(
-                qb -> qb.multiMatch(m -> m.fields("title", "content").query(q).fuzziness("AUTO")))
-            .build();
-    var hits = operations.search(query, PostSearchDocument.class);
+  @Override
+  @Transactional(readOnly = true)
+  public PagedResponse <PostSummaryResponse> search(String q, int page, int size) {
+	var pageable = PageRequest.of(page, size);
 
-    return hits.stream().map(hit -> hit.getContent()).toList();
+	var query = NativeQuery.builder()
+						   .withQuery(qb -> qb
+								   .multiMatch(m ->
+													   m.fields("title", "content")
+														.query(q)
+														.fuzziness("AUTO")))
+						   .withPageable(pageable)
+						   .build();
+
+	var searchHits =
+			operations.search(query, PostSearchDocument.class);
+
+	List <PostSummaryResponse> content = searchHits.stream()
+												   .map(hit -> PostMapper.toSummaryDtoFromSearch(hit.getContent()))
+												   .toList();
+
+	long totalElements = searchHits.getTotalHits();
+	int totalPages = (int) Math.ceil((double) totalElements / size);
+
+	return new PagedResponse <>(
+			content,
+			page,
+			size,
+			totalElements,
+			totalPages,
+			page == 0,
+			page >= totalPages - 1
+	);
   }
 }

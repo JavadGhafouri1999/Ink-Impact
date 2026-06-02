@@ -24,93 +24,93 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-private final UserRepository  userRepo;
-private final PasswordEncoder passwordEncoder;
-private final JwtService      jwtService;
-private final SessionService  sessionService;
+  private final UserRepository  userRepo;
+  private final PasswordEncoder passwordEncoder;
+  private final JwtService      jwtService;
+  private final SessionService  sessionService;
 
-@Override
-@Transactional
-public UserResponse register(RegisterRequest request) {
+  @Override
+  @Transactional
+  public UserResponse register(RegisterRequest request) {
 
-  String email = request.email().toLowerCase().trim();
-  String phone = request.phone().trim();
-  String username = request.username().trim();
+	String email = request.email().toLowerCase().trim();
+	String phone = request.phone().trim();
+	String username = request.username().trim();
 
-  // Single DB hit for all unique fields
-  List <User> conflicts = userRepo.findConflicts(email, username, phone);
+	// Single DB hit for all unique fields
+	List <User> conflicts = userRepo.findConflicts(email, username, phone);
 
-  for(User u : conflicts) {
-	if(u.getEmail().equals(email)) { throw new BadRequestException("Email already taken"); }
+	for(User u : conflicts) {
+	  if(u.getEmail().equals(email)) { throw new BadRequestException("Email already taken"); }
 
-	if(u.getUsername().equals(username)) { throw new BadRequestException("Username already taken"); }
+	  if(u.getUsername().equals(username)) { throw new BadRequestException("Username already taken"); }
 
-	if(u.getPhone().equals(phone)) { throw new BadRequestException("Phone already taken"); }
+	  if(u.getPhone().equals(phone)) { throw new BadRequestException("Phone already taken"); }
+	}
+
+	String encodedPassword = passwordEncoder.encode(request.password());
+
+	User user = UserMapper.toModel(request);
+	user.setEmail(email);
+	user.setUsername(username);
+	user.setPhone(phone);
+	user.setPassword(encodedPassword);
+	user.setRole(User.Role.USER);
+
+	User saved = userRepo.save(user);
+
+	return UserMapper.toDto(saved);
   }
 
-  String encodedPassword = passwordEncoder.encode(request.password());
+  @Override
+  @Transactional
+  public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
 
-  User user = UserMapper.toModel(request);
-  user.setEmail(email);
-  user.setUsername(username);
-  user.setPhone(phone);
-  user.setPassword(encodedPassword);
-  user.setRole(User.Role.USER);
+	String email = request.email().toLowerCase().trim();
 
-  User saved = userRepo.save(user);
+	User user = userRepo.findByEmail(email)
+						.orElseThrow(() -> new UnauthorizedException("Invalid  Credentials!"));
 
-  return UserMapper.toDto(saved);
-}
+	if(!passwordEncoder.matches(request.password(), user.getPassword())) {
+	  throw new UnauthorizedException("Invalid Credentials!");
+	}
 
-@Override
-@Transactional
-public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
+	Session session = sessionService.createSession(user, httpRequest);
 
-  String email = request.email().toLowerCase().trim();
+	String accessToken = jwtService.generateAccessToken(user, session);
+	String refreshToken = jwtService.generateRefreshToken(user, session);
 
-  User user = userRepo.findByEmail(email)
-					  .orElseThrow(() -> new UnauthorizedException("Invalid  Credentials!"));
-
-  if(!passwordEncoder.matches(request.password(), user.getPassword())) {
-	throw new UnauthorizedException("Invalid Credentials!");
+	return new AuthResponse(
+			UserMapper.toDto(user),
+			accessToken,
+			refreshToken);
   }
 
-  Session session = sessionService.createSession(user, httpRequest);
+  @Override
+  @Transactional
+  public AuthResponse refresh(String oldRefreshToken) {
 
-  String accessToken = jwtService.generateAccessToken(user, session);
-  String refreshToken = jwtService.generateRefreshToken(user, session);
+	if(!jwtService.validateToken(oldRefreshToken)) {
+	  throw new UnauthorizedException("Invalid refresh token");
+	}
 
-  return new AuthResponse(
-		  UserMapper.toDto(user),
-		  accessToken,
-		  refreshToken);
-}
+	// 2. Delegate session rotation to SessionService
+	Session newSession = sessionService.refreshSession(oldRefreshToken);
 
-@Override
-@Transactional
-public AuthResponse refresh(String oldRefreshToken) {
+	User user = newSession.getUser();
+	String newAccessToken = jwtService.generateAccessToken(user, newSession);
+	String newRefreshToken = jwtService.generateRefreshToken(user, newSession);
 
-  if(!jwtService.validateToken(oldRefreshToken)) {
-	throw new UnauthorizedException("Invalid refresh token");
+	return new AuthResponse(
+			UserMapper.toDto(user),
+			newAccessToken,
+			newRefreshToken
+	);
   }
 
-  // 2. Delegate session rotation to SessionService
-  Session newSession = sessionService.refreshSession(oldRefreshToken);
-
-  User user = newSession.getUser();
-  String newAccessToken = jwtService.generateAccessToken(user, newSession);
-  String newRefreshToken = jwtService.generateRefreshToken(user, newSession);
-
-  return new AuthResponse(
-		  UserMapper.toDto(user),
-		  newAccessToken,
-		  newRefreshToken
-  );
-}
-
-@Override
-@Transactional
-public void logout(String refreshToken) {
-  sessionService.logout(refreshToken);
-}
+  @Override
+  @Transactional
+  public void logout(String refreshToken) {
+	sessionService.logout(refreshToken);
+  }
 }

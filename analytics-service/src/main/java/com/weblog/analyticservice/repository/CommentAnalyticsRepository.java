@@ -15,106 +15,105 @@ import java.util.UUID;
 @Repository
 @RequiredArgsConstructor
 public class CommentAnalyticsRepository {
-	
-	private final JdbcTemplate jdbc;
-	
-	private static final RowMapper <CommentAnalytics> MAPPER = (rs, rowNum) ->
-			CommentAnalytics
-					.builder()
-					.id(UUID.fromString(rs.getString("id")))
-					.commentId(rs.getString("comment_id"))
-					.postId(rs.getString("post_id"))
-					.userId(rs.getString("user_id"))
-					.createdAt(rs.getTimestamp("created_at").toInstant())
-					.ingestedAt(rs.getTimestamp("ingested_at").toLocalDateTime())
-					.build();
-	
-	public void save(CommentAnalytics ca) {
-		jdbc.update(con -> {
-			var cs = con.prepareStatement("""
-			                                  INSERT INTO comment_analytics
-			                                  (id, comment_id, post_id, user_id, created_at, ingested_at)
-			                                  VALUES (?, ?, ?, ?, ?, ?)
-			                              """);
-			cs.setObject(1, ca.getId());
-			cs.setString(2, ca.getCommentId());
-			cs.setString(3, ca.getPostId());
-			cs.setString(4, ca.getUserId());
-			cs.setTimestamp(5, Timestamp.from(ca.getCreatedAt()));
-			cs.setTimestamp(6, Timestamp.valueOf(ca.getIngestedAt()));
-			
-			return cs;
-		});
+
+  private static final RowMapper <CommentAnalytics> MAPPER = (rs, rowNum) ->
+		  CommentAnalytics
+				  .builder()
+				  .id(UUID.fromString(rs.getString("id")))
+				  .commentId(rs.getString("comment_id"))
+				  .postId(rs.getString("post_id"))
+				  .userId(rs.getString("user_id"))
+				  .createdAt(rs.getTimestamp("created_at").toInstant())
+				  .ingestedAt(rs.getTimestamp("ingested_at").toLocalDateTime())
+				  .build();
+  private final        JdbcTemplate                 jdbc;
+
+  public void save(CommentAnalytics ca) {
+	jdbc.update(con -> {
+	  var cs = con.prepareStatement("""
+									    INSERT INTO comment_analytics
+									    (id, comment_id, post_id, user_id, created_at, ingested_at)
+									    VALUES (?, ?, ?, ?, ?, ?)
+									""");
+	  cs.setObject(1, ca.getId());
+	  cs.setString(2, ca.getCommentId());
+	  cs.setString(3, ca.getPostId());
+	  cs.setString(4, ca.getUserId());
+	  cs.setTimestamp(5, Timestamp.from(ca.getCreatedAt()));
+	  cs.setTimestamp(6, Timestamp.valueOf(ca.getIngestedAt()));
+
+	  return cs;
+	});
+  }
+
+  public void batchSave(List <CommentAnalytics> list) {
+	if(list == null || list.isEmpty()) {
+	  return;
 	}
-	
-	public void batchSave(List <CommentAnalytics> list) {
-		if(list == null || list.isEmpty()) {
-			return;
-		}
-		
-		jdbc.batchUpdate("""
-		                     INSERT INTO comment_analytics
-		                     (id, comment_id, post_id, user_id, created_at, ingested_at)
-		                     VALUES (?, ?, ?, ?, ?, ?)
-		                 """,
-		                 list, list.size(), (cs, ca) -> {
-					Connection con = cs.getConnection();
-					
-					cs.setObject(1, ca.getId());
-					cs.setString(2, ca.getCommentId());
-					cs.setString(3, ca.getPostId());
-					cs.setString(4, ca.getUserId());
-					cs.setTimestamp(5, Timestamp.from(ca.getCreatedAt()));
-					cs.setTimestamp(6, Timestamp.valueOf(ca.getIngestedAt()));
-				});
-	}
-	
-	public int countComments() {
-		return jdbc.queryForObject("SELECT COUNT(*) FROM comment_analytics", Integer.class);
-	}
-	
-	public int countTotalComments() {
-		return jdbc.queryForObject(
-				"SELECT COUNT(*) FROM comment_analytics",
-				Integer.class
-		                          );
-	}
-	
-	public List <CommentAnalytics> findLatest(int limit) {
-		return jdbc.query(
-				"SELECT * FROM comment_analytics ORDER BY created_at DESC LIMIT ?",
-				CommentAnalyticsRepository.MAPPER,
-				limit
-		                 );
-	}
-	
-	public List <CommentAnalytics> findByPost(String postId) {
-		return jdbc.query(
-				"SELECT * FROM comment_analytics WHERE post_id = ? ORDER BY created_at DESC",
-				CommentAnalyticsRepository.MAPPER,
-				postId
-		                 );
-	}
-	
-	public List <CommentAnalytics> findBetween(Instant start, Instant end) {
-		return jdbc.query(
-				"SELECT * FROM comment_analytics WHERE created_at BETWEEN ? AND ? ORDER BY created_at",
-				CommentAnalyticsRepository.MAPPER,
-				start, end
-		                 );
-	}
-	
-	public List <Object[]> countCommentsPerDay(int days) {
-		return jdbc.query(
-				"""
-				SELECT date(created_at) AS day, COUNT(*)
-				FROM comment_analytics
-				GROUP BY day
-				ORDER BY day DESC
-				LIMIT ?
-				""",
-				(rs, n) -> new Object[] {rs.getDate("day").toLocalDate(), rs.getInt("count")},
-				days
-		                 );
-	}
+
+	jdbc.batchUpdate("""
+					     INSERT INTO comment_analytics
+					     (id, comment_id, post_id, user_id, created_at, ingested_at)
+					     VALUES (?, ?, ?, ?, ?, ?)
+					 """,
+					 list, list.size(), (cs, ca) -> {
+			  Connection con = cs.getConnection();
+
+			  cs.setObject(1, ca.getId());
+			  cs.setString(2, ca.getCommentId());
+			  cs.setString(3, ca.getPostId());
+			  cs.setString(4, ca.getUserId());
+			  cs.setTimestamp(5, Timestamp.from(ca.getCreatedAt()));
+			  cs.setTimestamp(6, Timestamp.valueOf(ca.getIngestedAt()));
+			});
+  }
+
+  public int countComments() {
+	return jdbc.queryForObject("SELECT COUNT(*) FROM comment_analytics", Integer.class);
+  }
+
+  public int countTotalComments() {
+	return jdbc.queryForObject(
+			"SELECT COUNT(*) FROM comment_analytics",
+			Integer.class
+							  );
+  }
+
+  public List <CommentAnalytics> findLatest(int limit) {
+	return jdbc.query(
+			"SELECT * FROM comment_analytics ORDER BY created_at DESC LIMIT ?",
+			CommentAnalyticsRepository.MAPPER,
+			limit
+					 );
+  }
+
+  public List <CommentAnalytics> findByPost(String postId) {
+	return jdbc.query(
+			"SELECT * FROM comment_analytics WHERE post_id = ? ORDER BY created_at DESC",
+			CommentAnalyticsRepository.MAPPER,
+			postId
+					 );
+  }
+
+  public List <CommentAnalytics> findBetween(Instant start, Instant end) {
+	return jdbc.query(
+			"SELECT * FROM comment_analytics WHERE created_at BETWEEN ? AND ? ORDER BY created_at",
+			CommentAnalyticsRepository.MAPPER,
+			start, end
+					 );
+  }
+
+  public List <Object[]> countCommentsPerDay(int days) {
+	return jdbc.query(
+			"""
+			SELECT date(created_at) AS day, COUNT(*)
+			FROM comment_analytics
+			GROUP BY day
+			ORDER BY day DESC
+			LIMIT ?
+			""",
+			(rs, n) -> new Object[] {rs.getDate("day").toLocalDate(), rs.getInt("count")},
+			days
+					 );
+  }
 }

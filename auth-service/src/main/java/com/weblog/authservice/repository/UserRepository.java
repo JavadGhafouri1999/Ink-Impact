@@ -12,22 +12,22 @@ import java.util.UUID;
 @Repository
 public interface UserRepository extends JpaRepository <User, UUID> {
 
-@Query("""
-	       SELECT u FROM User u
-	       WHERE u.email = :email
-	          OR u.username = :username
-	          OR u.phone = :phone
-	   """)
-List <User> findConflicts(String email, String username, String phone);
+  @Query("""
+		     SELECT u FROM User u
+		     WHERE u.email = :email
+		        OR u.username = :username
+		        OR u.phone = :phone
+		 """)
+  List <User> findConflicts(String email, String username, String phone);
 
 
-boolean existsByEmail(String email);
+  boolean existsByEmail(String email);
 
-boolean existsByUsername(String username);
+  boolean existsByUsername(String username);
 
-boolean existsByPhone(String phone);
+  boolean existsByPhone(String phone);
 
-Optional <User> findByEmail(String email);
+  Optional <User> findByEmail(String email);
 
-Optional <User> findByUsername(String username);
+  Optional <User> findByUsername(String username);
 }

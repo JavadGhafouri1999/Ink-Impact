@@ -12,12 +12,10 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class UserActivityProducer {
-  
-  private final KafkaTemplate <String, Object> kafkaTemplate;
-  
-  private static final String TOPIC = "user-activity";
-  
-  
+
+  private static final String                         TOPIC = "user-activity";
+  private final        KafkaTemplate <String, Object> kafkaTemplate;
+
   public void sendActivityEvent(
 		  String userId,
 		  List <String> roles,
@@ -34,7 +32,7 @@ public class UserActivityProducer {
 			userAgent,
 			Instant.now().toString()
 	);
-	
+
 	kafkaTemplate.send(TOPIC, userId, event);
 	log.debug("Sent UserActivityEvent: {}", event);
   }

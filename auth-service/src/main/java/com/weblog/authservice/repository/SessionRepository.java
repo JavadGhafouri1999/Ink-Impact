@@ -13,14 +13,14 @@ import java.util.UUID;
 @Repository
 public interface SessionRepository extends JpaRepository <Session, UUID> {
 
-Optional <Session> findByIdAndActive(UUID id, boolean active);
+  Optional <Session> findByIdAndActive(UUID id, boolean active);
 
-Optional <Session> findById(UUID id);
+  Optional <Session> findById(UUID id);
 
-List <Session> findByUserIdAndActive(UUID userId, boolean active);
+  List <Session> findByUserIdAndActive(UUID userId, boolean active);
 
-@Query("UPDATE Session s SET s.active = false, s.revokedAt = CURRENT_TIMESTAMP WHERE s.user.id = :userId " +
-	   "AND s.active = true")
-@Modifying
-void deactivateAllUserSessions(UUID userId);
+  @Query("UPDATE Session s SET s.active = false, s.revokedAt = CURRENT_TIMESTAMP WHERE s.user.id = :userId " +
+		 "AND s.active = true")
+  @Modifying
+  void deactivateAllUserSessions(UUID userId);
 }

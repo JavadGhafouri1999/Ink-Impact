@@ -6,17 +6,25 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record PostCreateRequestDto(
+
 		@NotBlank(message = "Title is required")
-		@Size(min = 3, max = 200, message = "Title must be between 3 and 200 characters")
+		@Size(min = 3, max = 200)
 		String title,
-		
+
 		@NotBlank(message = "Content is required")
-		@Size(min = 10, max = 50000, message = "Content must be between 10 and 50000 characters")
+		@Size(min = 10, max = 50000)
 		String content,
-		
-		@Size(max = 10, message = "Maximum 10 tags allowed")
-		List <@NotBlank(message = "Tag cannot be empty")
-		@Size(min = 2, max = 30, message = "Tag must be between 2 and 30 characters") String> tags,
-		
-		Boolean published
+
+		@Size(max = 10)
+		List <
+				@NotBlank
+				@Size(min = 2, max = 30)
+						String> tags,
+
+		// main hero image
+		String bannerImageUrl,
+
+		// inline/content images
+		@Size(max = 20, message = "Maximum 20 images allowed")
+		List <@NotBlank String> images
 ) { }

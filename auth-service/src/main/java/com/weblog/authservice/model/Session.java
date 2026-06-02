@@ -16,33 +16,33 @@ import java.util.UUID;
 @NoArgsConstructor
 public class Session {
 
-@Id
-@GeneratedValue(strategy = GenerationType.UUID)
-private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
-@ManyToOne(fetch = FetchType.LAZY)
-@JoinColumn(name = "user_id", nullable = false)
-private User user;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
 
-private String userAgent;
+  private String userAgent;
 
-private String ipAddress;
+  private String ipAddress;
 
-@Column(nullable = false)
-private boolean active;
+  @Column(nullable = false)
+  private boolean active;
 
-@CreationTimestamp
-private Instant createdAt;
+  @CreationTimestamp
+  private Instant createdAt;
 
-private Instant expiresAt;
+  private Instant expiresAt;
 
-private Instant revokedAt;
+  private Instant revokedAt;
 
-public Session(boolean active, Instant expiresAt, String ipAddress, User user, String userAgent) {
-  this.active = active;
-  this.expiresAt = expiresAt;
-  this.ipAddress = ipAddress;
-  this.user = user;
-  this.userAgent = userAgent;
-}
+  public Session(boolean active, Instant expiresAt, String ipAddress, User user, String userAgent) {
+	this.active = active;
+	this.expiresAt = expiresAt;
+	this.ipAddress = ipAddress;
+	this.user = user;
+	this.userAgent = userAgent;
+  }
 }

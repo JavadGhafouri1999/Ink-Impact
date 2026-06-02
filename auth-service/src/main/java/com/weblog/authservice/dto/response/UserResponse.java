@@ -10,7 +10,7 @@ public record UserResponse(
 		String phone,
 		String avatarUrl,
 		String roles,
-		
+
 		Instant createdAt,
 		Instant updatedAt
 ) {

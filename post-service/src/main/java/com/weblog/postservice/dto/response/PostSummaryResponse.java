@@ -12,6 +12,7 @@ public record PostSummaryResponse(
 		String slug,
 		String excerpt,       // ← first 100 chars only
 		List <String> tags,
+		String bannerImageUrl,
 		UUID authorId,
 		@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 		LocalDateTime createdAt) {

@@ -17,6 +17,10 @@ spring  :
     hibernate                       :
       ddl-auto : update
 
+app     :
+  cookie :
+    secure : false
+
 server  :
   port : 4005
 

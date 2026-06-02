@@ -17,49 +17,49 @@ import java.util.UUID;
 @NoArgsConstructor
 public class User {
 
-@Id
-@GeneratedValue(strategy = GenerationType.UUID)
-private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
-@Column(nullable = false, unique = true)
-private String username;
+  @Column(nullable = false, unique = true)
+  private String username;
 
-@Column(nullable = false, unique = true)
-private String email;
+  @Column(nullable = false, unique = true)
+  private String email;
 
-@Column(nullable = false)
-private String password;
+  @Column(nullable = false)
+  private String password;
 
-@Column(nullable = false)
-@Enumerated(EnumType.STRING)
-private Role role;
+  @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
+  private Role role;
 
-@Column(nullable = false, unique = true)
-private String phone;
+  @Column(nullable = false, unique = true)
+  private String phone;
 
-private String avatarUrl;
+  private String avatarUrl;
 
-@CreationTimestamp
-private Instant createdAt;
+  @CreationTimestamp
+  private Instant createdAt;
 
-@UpdateTimestamp
-private Instant updatedAt;
+  @UpdateTimestamp
+  private Instant updatedAt;
 
-public User(
-		String avatarUrl, String email, String password, String phone, Role role, String username) {
-  this.avatarUrl = avatarUrl;
-  this.email = email;
-  this.password = password;
-  this.phone = phone;
-  this.role = role;
-  this.username = username;
-}
+  public User(
+		  String avatarUrl, String email, String password, String phone, Role role, String username) {
+	this.avatarUrl = avatarUrl;
+	this.email = email;
+	this.password = password;
+	this.phone = phone;
+	this.role = role;
+	this.username = username;
+  }
 
-public enum Role {
-  OWNER,
-  ADMIN,
-  SPECIAL,
-  AUTHOR,
-  USER
-}
+  public enum Role {
+	OWNER,
+	ADMIN,
+	SPECIAL,
+	AUTHOR,
+	USER
+  }
 }

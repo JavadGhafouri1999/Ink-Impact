@@ -18,46 +18,66 @@ import java.util.UUID;
 @NoArgsConstructor
 @Entity(name = "post")
 public class Post {
-	@Id
-	@GeneratedValue(strategy = GenerationType.UUID)
-	private UUID id;
-	
-	@Column(name = "author_id", nullable = false)
-	private UUID authorId;
-	
-	@NotBlank(message = "Title is required")
-	@Column(nullable = false, unique = true)
-	private String title;
-	
-	@NotBlank(message = "Content is required")
-	@Column(nullable = false, columnDefinition = "TEXT")
-	private String content;
-	
-	private String slug;
-	
-	@Column(columnDefinition = "TEXT[]")
-	private List <String> tags = new ArrayList <>();
-	
-	@Column(name = "published")
-	private boolean published = true;
-	
-	@CreationTimestamp
-	@Column(name = "created_at", updatable = false)
-	private LocalDateTime createdAt;
-	
-	@UpdateTimestamp
-	@Column(name = "updated_at")
-	private LocalDateTime updatedAt;
-	
-	public Post(UUID authorId, String content,
-	            LocalDateTime createdAt, boolean published, String slug,
-	            String title, LocalDateTime updatedAt) {
-		this.authorId  = authorId;
-		this.title     = title;
-		this.slug      = slug;
-		this.content   = content;
-		this.published = published;
-		this.createdAt = createdAt;
-		this.updatedAt = updatedAt;
-	}
+
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
+
+  @Column(name = "author_id", nullable = false)
+  private UUID authorId;
+
+  @NotBlank(message = "Title is required")
+  @Column(nullable = false, unique = true)
+  private String title;
+
+  @NotBlank(message = "Content is required")
+  @Column(nullable = false, columnDefinition = "TEXT")
+  private String content;
+
+  private String slug;
+
+  @ElementCollection(fetch = FetchType.EAGER)
+  @CollectionTable(name = "post_tags", joinColumns = @JoinColumn(name = "post_id"))
+  @Column(name = "tag")
+  private List <String> tags = new ArrayList <>();
+
+  // ── STATUS CONTROL (IMPORTANT FIX) ──
+  @Enumerated(EnumType.STRING)
+  private PostStatus status = PostStatus.DRAFT;
+
+  // ── BANNER IMAGE (1:1 OR HERO IMAGE) ──
+  private String bannerImageUrl;
+
+  // ── CONTENT IMAGES (INLINE GALLERY) ──
+  @ElementCollection(fetch = FetchType.EAGER)
+  @CollectionTable(name = "post_images", joinColumns = @JoinColumn(name = "post_id"))
+  @Column(name = "image_url")
+  private List <String> images = new ArrayList <>();
+
+  @CreationTimestamp
+  @Column(name = "created_at", updatable = false)
+  private LocalDateTime createdAt;
+
+  @UpdateTimestamp
+  @Column(name = "updated_at")
+  private LocalDateTime updatedAt;
+
+  public Post(UUID authorId, String bannerImageUrl, String content, List <String> images, String slug,
+			  PostStatus status, List <String> tags, String title) {
+	this.authorId = authorId;
+	this.bannerImageUrl = bannerImageUrl;
+	this.content = content;
+	this.images = images;
+	this.slug = slug;
+	this.status = status;
+	this.tags = tags;
+	this.title = title;
+  }
+
+  public enum PostStatus {
+	DRAFT,
+	PENDING_REVIEW,
+	PUBLISHED,
+	ARCHIVED
+  }
 }

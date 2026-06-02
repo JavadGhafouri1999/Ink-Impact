@@ -12,15 +12,16 @@ public record PagedResponse<T>(
 		int totalPages,
 		boolean first,
 		boolean last) {
-	public static <T> PagedResponse <T> from(Page <T> page) {
-		return new PagedResponse <>(
-				page.getContent(),
-				page.getNumber(),
-				page.getSize(),
-				page.getTotalElements(),
-				page.getTotalPages(),
-				page.isFirst(),
-				page.isLast()
-		);
-	}
+
+  public static <T> PagedResponse <T> from(Page <T> page) {
+	return new PagedResponse <>(
+			page.getContent(),
+			page.getNumber(),
+			page.getSize(),
+			page.getTotalElements(),
+			page.getTotalPages(),
+			page.isFirst(),
+			page.isLast()
+	);
+  }
 }

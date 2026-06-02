@@ -12,10 +12,11 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CommentAnalytics {
-	private UUID          id;
-	private String        commentId;
-	private String        postId;
-	private String        userId;
-	private Instant       createdAt;
-	private LocalDateTime ingestedAt;
+
+  private UUID          id;
+  private String        commentId;
+  private String        postId;
+  private String        userId;
+  private Instant       createdAt;
+  private LocalDateTime ingestedAt;
 }

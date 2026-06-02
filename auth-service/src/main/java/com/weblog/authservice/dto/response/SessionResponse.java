@@ -14,6 +14,7 @@ public record SessionResponse(
 		Instant createdAt,
 		Instant expiresAt
 ) {
+
   public static SessionResponse toDto(Session s) {
 	return new SessionResponse(
 			s.getId(),

@@ -4,12 +4,13 @@ import com.weblog.commentservice.dto.request.CommentRequestDto;
 import com.weblog.commentservice.dto.request.CommentUpdateDto;
 import com.weblog.commentservice.dto.response.CommentResponseDto;
 import com.weblog.commentservice.dto.response.PagedResponse;
+
 import java.util.List;
 import java.util.UUID;
 
 public interface CommentService {
 
-  PagedResponse<CommentResponseDto> findAllByPostId(UUID postId, int page, int size);
+  PagedResponse <CommentResponseDto> findAllByPostId(UUID postId, int page, int size);
 
   void deleteByPostId(UUID postId, String role);
 
@@ -17,7 +18,7 @@ public interface CommentService {
 
   CommentResponseDto findById(UUID id);
 
-  List<CommentResponseDto> findAll();
+  List <CommentResponseDto> findAll();
 
   CommentResponseDto create(UUID user, String role, CommentRequestDto request);
 

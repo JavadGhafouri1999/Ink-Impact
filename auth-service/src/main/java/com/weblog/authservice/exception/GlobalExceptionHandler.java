@@ -17,64 +17,64 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GlobalExceptionHandler {
 
-private Map <String, Object> buildResponse(int status, String message) {
-  Map <String, Object> body = new HashMap <>();
-  body.put("status", status);
-  body.put("message", message);
-  body.put("timestamp", LocalDateTime.now().toString());
-  return body;
-}
+  private Map <String, Object> buildResponse(int status, String message) {
+	Map <String, Object> body = new HashMap <>();
+	body.put("status", status);
+	body.put("message", message);
+	body.put("timestamp", LocalDateTime.now().toString());
+	return body;
+  }
 
-@ExceptionHandler(MethodArgumentNotValidException.class)
-public ResponseEntity <Map <String, Object>> handleValidationException(
-		MethodArgumentNotValidException ex) {
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity <Map <String, Object>> handleValidationException(
+		  MethodArgumentNotValidException ex) {
 
-  Map <String, String> errors =
-		  ex.getBindingResult().getFieldErrors().stream()
-			.collect(
-					Collectors.toMap(
-							FieldError::getField,
-							fieldError ->
-									fieldError.getDefaultMessage() != null
-									? fieldError.getDefaultMessage()
-									: "Invalid value"));
+	Map <String, String> errors =
+			ex.getBindingResult().getFieldErrors().stream()
+			  .collect(
+					  Collectors.toMap(
+							  FieldError::getField,
+							  fieldError ->
+									  fieldError.getDefaultMessage() != null
+									  ? fieldError.getDefaultMessage()
+									  : "Invalid value"));
 
-  log.warn("Validation failed: {}", errors);
+	log.warn("Validation failed: {}", errors);
 
-  Map <String, Object> body = new HashMap <>();
-  body.put("status", 400);
-  body.put("message", "Validation failed");
-  body.put("timestamp", LocalDateTime.now().toString());
-  body.put("errors", errors);
+	Map <String, Object> body = new HashMap <>();
+	body.put("status", 400);
+	body.put("message", "Validation failed");
+	body.put("timestamp", LocalDateTime.now().toString());
+	body.put("errors", errors);
 
-  return ResponseEntity.badRequest().body(body);
-}
+	return ResponseEntity.badRequest().body(body);
+  }
 
-@ExceptionHandler(UserNotFoundException.class)
-public ResponseEntity <Map <String, Object>> handlePostNotFound(UserNotFoundException ex) {
-  log.warn("User not found: {}", ex.getMessage());
-  return ResponseEntity.status(HttpStatus.NOT_FOUND).body(buildResponse(404, ex.getMessage()));
-}
+  @ExceptionHandler(UserNotFoundException.class)
+  public ResponseEntity <Map <String, Object>> handlePostNotFound(UserNotFoundException ex) {
+	log.warn("User not found: {}", ex.getMessage());
+	return ResponseEntity.status(HttpStatus.NOT_FOUND).body(buildResponse(404, ex.getMessage()));
+  }
 
-@ExceptionHandler(ConflictException.class)
-public ResponseEntity <Map <String, Object>> handleDuplicateTitle(ConflictException ex) {
-  log.warn("Conflict: {}", ex.getMessage());
+  @ExceptionHandler(ConflictException.class)
+  public ResponseEntity <Map <String, Object>> handleDuplicateTitle(ConflictException ex) {
+	log.warn("Conflict: {}", ex.getMessage());
 
-  return ResponseEntity.status(HttpStatus.CONFLICT).body(buildResponse(409, ex.getMessage()));
-}
+	return ResponseEntity.status(HttpStatus.CONFLICT).body(buildResponse(409, ex.getMessage()));
+  }
 
-@ExceptionHandler(UnauthorizedException.class)
-public ResponseEntity <Map <String, Object>> handleUnauthorized(UnauthorizedException ex) {
-  log.warn("Unauthorized action: {}", ex.getMessage());
+  @ExceptionHandler(UnauthorizedException.class)
+  public ResponseEntity <Map <String, Object>> handleUnauthorized(UnauthorizedException ex) {
+	log.warn("Unauthorized action: {}", ex.getMessage());
 
-  return ResponseEntity.status(HttpStatus.FORBIDDEN).body(buildResponse(403, ex.getMessage()));
-}
+	return ResponseEntity.status(HttpStatus.FORBIDDEN).body(buildResponse(403, ex.getMessage()));
+  }
 
-@ExceptionHandler(Exception.class)
-public ResponseEntity <Map <String, Object>> handleGeneral(Exception ex) {
-  log.error("Unexpected error: {}", ex.getMessage(), ex);
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity <Map <String, Object>> handleGeneral(Exception ex) {
+	log.error("Unexpected error: {}", ex.getMessage(), ex);
 
-  return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					   .body(buildResponse(500, ex.getMessage()));
-}
+	return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+						 .body(buildResponse(500, ex.getMessage()));
+  }
 }

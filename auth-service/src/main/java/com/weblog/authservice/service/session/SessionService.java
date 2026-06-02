@@ -10,13 +10,13 @@ import java.util.UUID;
 
 public interface SessionService {
 
-Session createSession(User user, HttpServletRequest request);
+  Session createSession(User user, HttpServletRequest request);
 
-boolean validateSession(String refreshToken);
+  boolean validateSession(String refreshToken);
 
-Session refreshSession(String oldRefreshToken);
+  Session refreshSession(String oldRefreshToken);
 
-void logout(String refreshToken);
+  void logout(String refreshToken);
 
-List <SessionResponse> getUserSessions(UUID userId);
+  List <SessionResponse> getUserSessions(UUID userId);
 }

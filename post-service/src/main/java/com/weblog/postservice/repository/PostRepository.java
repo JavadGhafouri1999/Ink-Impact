@@ -11,24 +11,33 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface PostRepository extends JpaRepository <Post, UUID> {
-	Optional <Post> findBySlug(String slug);
-	
-	Page <Post> findByAuthorId(UUID authorId, Pageable pageable);
-	
-	boolean existsByTitle(String title);
-	
-	boolean existsById(UUID postId);
-	
-	// For pagination - only published posts
-	Page <Post> findByPublishedTrue(Pageable pageable);
-	
-	// For admin - all posts (drafts + published)
-	Page <Post> findAll(Pageable pageable);
-	
-	@Query(
-			value = "SELECT * FROM post WHERE :tag = ANY(tags) ORDER BY created_at DESC",
-			countQuery = "SELECT COUNT(*) FROM post WHERE :tag = ANY(tags)",
-			nativeQuery = true
-	)
-	Page <Post> findByTag(@Param("tag") String tag, Pageable pageable);
+
+  Optional <Post> findBySlugAndStatus(
+		  String slug,
+		  Post.PostStatus status);
+
+  Page <Post> findByAuthorIdAndStatus(
+		  UUID authorId,
+		  Post.PostStatus status,
+		  Pageable pageable);
+
+  boolean existsByTitle(String title);
+
+  boolean existsById(UUID postId);
+
+  // For pagination - only published posts
+  Page <Post> findByStatus(Post.PostStatus status, Pageable pageable);
+
+  // For admin - all posts (drafts + published)
+  Page <Post> findAll(Pageable pageable);
+
+  @Query("""
+		 SELECT p FROM post p
+		 JOIN p.tags t
+		 WHERE t = :tag
+		 AND p.status = com.weblog.postservice.model.Post.PostStatus.PUBLISHED
+		 """)
+  Page <Post> findPublishedByTag(
+		  @Param("tag") String tag,
+		  Pageable pageable);
 }

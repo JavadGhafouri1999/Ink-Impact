@@ -16,52 +16,52 @@ import java.util.List;
 @RequestMapping("/api/admin/analytics")
 @RequiredArgsConstructor
 public class DashboardAnalyticsController {
-	
-	private final DashboardAnalyticsService service;
-	
-	@GetMapping("/posts/total")
-	public int totalPosts() {
-		return service.totalPosts();
-	}
-	
-	@GetMapping("/comments/total")
-	public int totalComments() {
-		return service.totalComments();
-	}
-	
-	@GetMapping("/posts/latest")
-	public List <PostAnalyticsDto> latestPosts(@RequestParam(defaultValue = "20") int limit) {
-		return service.latestPosts(limit);
-	}
-	
-	@GetMapping("/comments/latest")
-	public List <CommentAnalyticsDto> latestComments(@RequestParam(defaultValue = "20") int limit) {
-		return service.latestComments(limit);
-	}
-	
-	@GetMapping("/posts/range")
-	public List <PostAnalyticsDto> postsBetween(
-			@RequestParam Instant start,
-			@RequestParam Instant end
-	                                           ) {
-		return service.postsBetween(start, end);
-	}
-	
-	@GetMapping("/comments/range")
-	public List <CommentAnalyticsDto> commentsBetween(
-			@RequestParam Instant start,
-			@RequestParam Instant end
-	                                                 ) {
-		return service.commentsBetween(start, end);
-	}
-	
-	@GetMapping("/posts/per-day")
-	public List <Object[]> postsPerDay(@RequestParam(defaultValue = "30") int days) {
-		return service.postsPerDay(days);
-	}
-	
-	@GetMapping("/comments/per-day")
-	public List <Object[]> commentsPerDay(@RequestParam(defaultValue = "30") int days) {
-		return service.commentsPerDay(days);
-	}
+
+  private final DashboardAnalyticsService service;
+
+  @GetMapping("/posts/total")
+  public int totalPosts() {
+	return service.totalPosts();
+  }
+
+  @GetMapping("/comments/total")
+  public int totalComments() {
+	return service.totalComments();
+  }
+
+  @GetMapping("/posts/latest")
+  public List <PostAnalyticsDto> latestPosts(@RequestParam(defaultValue = "20") int limit) {
+	return service.latestPosts(limit);
+  }
+
+  @GetMapping("/comments/latest")
+  public List <CommentAnalyticsDto> latestComments(@RequestParam(defaultValue = "20") int limit) {
+	return service.latestComments(limit);
+  }
+
+  @GetMapping("/posts/range")
+  public List <PostAnalyticsDto> postsBetween(
+		  @RequestParam Instant start,
+		  @RequestParam Instant end
+											 ) {
+	return service.postsBetween(start, end);
+  }
+
+  @GetMapping("/comments/range")
+  public List <CommentAnalyticsDto> commentsBetween(
+		  @RequestParam Instant start,
+		  @RequestParam Instant end
+												   ) {
+	return service.commentsBetween(start, end);
+  }
+
+  @GetMapping("/posts/per-day")
+  public List <Object[]> postsPerDay(@RequestParam(defaultValue = "30") int days) {
+	return service.postsPerDay(days);
+  }
+
+  @GetMapping("/comments/per-day")
+  public List <Object[]> commentsPerDay(@RequestParam(defaultValue = "30") int days) {
+	return service.commentsPerDay(days);
+  }
 }

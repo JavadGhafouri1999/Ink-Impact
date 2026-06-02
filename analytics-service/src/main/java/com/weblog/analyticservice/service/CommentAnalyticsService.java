@@ -15,35 +15,35 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class CommentAnalyticsService extends BatchIngestor <CommentAnalytics> {
-	
-	private final CommentAnalyticsRepository repository;
-	
-	
-	@Override
-	protected CommentAnalytics convert(byte[] payload) {
-		try {
-			CommentEvent e = CommentEvent.parseFrom(payload);
-			return CommentAnalytics.builder()
-			                       .id(UUID.randomUUID())
-			                       .commentId(e.getId())
-			                       .postId(e.getPostId())
-			                       .userId(e.getUserId())
-			                       .createdAt(Instant.ofEpochSecond(e.getCreatedAt().getSeconds()))
-			                       .ingestedAt(LocalDateTime.now())
-			                       .build();
-		} catch(Exception ex) {
-			throw new RuntimeException("Failed to parse CommentEvent", ex);
-		}
+
+  private final CommentAnalyticsRepository repository;
+
+
+  @Override
+  protected CommentAnalytics convert(byte[] payload) {
+	try {
+	  CommentEvent e = CommentEvent.parseFrom(payload);
+	  return CommentAnalytics.builder()
+							 .id(UUID.randomUUID())
+							 .commentId(e.getId())
+							 .postId(e.getPostId())
+							 .userId(e.getUserId())
+							 .createdAt(Instant.ofEpochSecond(e.getCreatedAt().getSeconds()))
+							 .ingestedAt(LocalDateTime.now())
+							 .build();
+	} catch(Exception ex) {
+	  throw new RuntimeException("Failed to parse CommentEvent", ex);
 	}
-	
-	@Override
-	protected void saveBatch(List <CommentAnalytics> batch) {
-	
-	}
-	
-	@Override
-	protected String name() {
-		return "CommentAnalytics";
-	}
-	
+  }
+
+  @Override
+  protected void saveBatch(List <CommentAnalytics> batch) {
+
+  }
+
+  @Override
+  protected String name() {
+	return "CommentAnalytics";
+  }
+
 }
