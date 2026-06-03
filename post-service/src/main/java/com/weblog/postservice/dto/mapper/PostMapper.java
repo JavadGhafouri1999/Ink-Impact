@@ -7,7 +7,7 @@ import com.weblog.postservice.model.Post;
 import com.weblog.postservice.model.PostSearchDocument;
 import com.weblog.postservice.utils.SlugGenerator;
 
-import java.time.ZoneId;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -79,7 +79,7 @@ public final class PostMapper {
 			doc.getTags(),
 			doc.getBannerImageUrl(),
 			UUID.fromString(doc.getAuthorId()),
-			doc.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDateTime()
+			LocalDateTime.parse(doc.getCreatedAt())
 	);
   }
 }

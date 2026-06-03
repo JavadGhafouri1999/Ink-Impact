@@ -1,4 +1,4 @@
-package com.weblog.postservice.listeners;
+package com.weblog.postservice.event;
 
 import com.weblog.postservice.model.Post;
 

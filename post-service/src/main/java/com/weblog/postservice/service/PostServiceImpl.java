@@ -11,14 +11,15 @@ import com.weblog.postservice.dto.request.PostUpdateRequestDto;
 import com.weblog.postservice.dto.response.PagedResponse;
 import com.weblog.postservice.dto.response.PostResponseDto;
 import com.weblog.postservice.dto.response.PostSummaryResponse;
+import com.weblog.postservice.event.PostCreatedEvent;
+import com.weblog.postservice.event.PostDeletedEvent;
+import com.weblog.postservice.event.PostUpdatedEvent;
 import com.weblog.postservice.exception.DuplicateTitleException;
 import com.weblog.postservice.exception.PostNotFoundException;
 import com.weblog.postservice.exception.UnauthorizedException;
-import com.weblog.postservice.listeners.PostCreatedEvent;
 import com.weblog.postservice.model.Post;
 import com.weblog.postservice.model.PostSearchDocument;
 import com.weblog.postservice.repository.PostRepository;
-import com.weblog.postservice.repository.PostSearchRepository;
 import com.weblog.postservice.utils.SlugGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,6 @@ import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,23 +46,8 @@ import java.util.UUID;
 public class PostServiceImpl implements PostService {
 
   private final PostRepository            postRepo;
-  private final PostSearchRepository      repo;
   private final ElasticsearchOperations   operations;
   private final ApplicationEventPublisher eventPublisher;
-
-  public void indexPost(Post post) {
-	PostSearchDocument doc = new PostSearchDocument();
-	doc.setId(post.getId().toString());
-	doc.setTitle(post.getTitle());
-	doc.setContent(post.getContent());
-	doc.setAuthorId(post.getAuthorId().toString());
-	doc.setTags(post.getTags());
-	doc.setSlug(post.getSlug());
-	doc.setBannerImageUrl(post.getBannerImageUrl());
-	doc.setImages(post.getImages());
-	doc.setCreatedAt(post.getCreatedAt() != null ? post.getCreatedAt() : LocalDateTime.now());
-	repo.save(doc);
-  }
 
   private Post findPostAndVerifyOwnership(UUID postId, UUID authorId, String role) {
 	Post post = postRepo.findById(postId)
@@ -87,7 +72,6 @@ public class PostServiceImpl implements PostService {
 
 	try {
 	  Post post = PostMapper.toModel(request, authorId);
-
 	  Post savedPost = postRepo.save(post);
 
 	  // publish event AFTER DB save
@@ -138,7 +122,7 @@ public class PostServiceImpl implements PostService {
 	}
 	Post updated = postRepo.saveAndFlush(post);
 
-	indexPost(updated);
+	eventPublisher.publishEvent(new PostUpdatedEvent(updated));
 
 	return PostMapper.toDto(updated);
   }
@@ -224,6 +208,8 @@ public class PostServiceImpl implements PostService {
 
 	Post post = findPostAndVerifyOwnership(id, authorId, role);
 	postRepo.delete(post);
+
+	eventPublisher.publishEvent(new PostDeletedEvent(id));
   }
 
   @Override
@@ -232,20 +218,25 @@ public class PostServiceImpl implements PostService {
 	var pageable = PageRequest.of(page, size);
 
 	var query = NativeQuery.builder()
-						   .withQuery(qb -> qb
-								   .multiMatch(m ->
-													   m.fields("title", "content")
-														.query(q)
-														.fuzziness("AUTO")))
+						   .withQuery(
+								   qb -> qb
+										   .multiMatch(
+												   m -> m
+														   .fields("title^5", "content^2")
+														   .query(q)
+														   .fuzziness("AUTO")
+													  )
+									 )
 						   .withPageable(pageable)
 						   .build();
 
 	var searchHits =
 			operations.search(query, PostSearchDocument.class);
 
-	List <PostSummaryResponse> content = searchHits.stream()
-												   .map(hit -> PostMapper.toSummaryDtoFromSearch(hit.getContent()))
-												   .toList();
+	List <PostSummaryResponse> content = searchHits
+			.stream()
+			.map(hit -> PostMapper.toSummaryDtoFromSearch(hit.getContent()))
+			.toList();
 
 	long totalElements = searchHits.getTotalHits();
 	int totalPages = (int) Math.ceil((double) totalElements / size);
