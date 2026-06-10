@@ -14,6 +14,7 @@ import com.weblog.postservice.dto.response.PostSummaryResponse;
 import com.weblog.postservice.event.PostCreatedEvent;
 import com.weblog.postservice.event.PostDeletedEvent;
 import com.weblog.postservice.event.PostUpdatedEvent;
+import com.weblog.postservice.event.PostViewedEvent;
 import com.weblog.postservice.exception.DuplicateTitleException;
 import com.weblog.postservice.exception.PostNotFoundException;
 import com.weblog.postservice.exception.UnauthorizedException;
@@ -34,9 +35,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,22 +48,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
 
-  private final PostRepository            postRepo;
-  private final ElasticsearchOperations   operations;
-  private final ApplicationEventPublisher eventPublisher;
+  private final PostRepository                 postRepo;
+  private final ElasticsearchOperations        operations;
+  private final ApplicationEventPublisher      eventPublisher;
+  private final RedisTemplate <String, String> redisTemplate; // ← For tracking unique viewers
 
-  private Post findPostAndVerifyOwnership(UUID postId, UUID authorId, String role) {
-	Post post = postRepo.findById(postId)
-						.orElseThrow(() -> new PostNotFoundException(postId));
+  // ── Redis key prefix for view tracking ──
+  private static final String VIEWER_KEY_PREFIX = "post:%s:viewer:%s"; // ← post:{postId}:viewer:{userId}
+  private static final long   VIEWER_TTL_DAYS   = 30; // ← Track viewers for 30 days
 
-	boolean isAdmin = role.equals("ADMIN") || role.equals("OWNER");
-
-	if(!isAdmin && !post.getAuthorId().equals(authorId)) {
-	  throw new UnauthorizedException("You can only modify your own posts");
-	}
-
-	return post;
-  }
 
   @Override
   @Transactional // Good for write operations
@@ -151,44 +147,92 @@ public class PostServiceImpl implements PostService {
   }
 
   @Override
-  @Transactional(readOnly = true) // Hibernate: "Don't bother tracking changes"
-  @Cacheable(value = "postsById", key = "#id")
-  public PostResponseDto getById(UUID id) {
-	log.debug("Cache miss - request send to DB ID: {}", id);
-	Post post = postRepo.findById(id).orElseThrow(() -> new PostNotFoundException(id));
-	return PostMapper.toDto(post); // Nothing gets saved, just reading
-  }
-
-  @Override
   @Transactional(readOnly = true)
   public boolean existsById(UUID id) {
 	return postRepo.existsById(id);
   }
 
+  /**
+   * GET post by ID with view tracking for authenticated users.
+   * Tracks unique views in Redis and increments viewCount.
+   *
+   * @param id Post UUID
+   * @param userId Optional UUID of viewing user (from X-User-Id header)
+   * @return Full PostResponseDto with current viewCount
+   */
   @Override
-  @Transactional(readOnly = true)
+  @Transactional
+  @Cacheable(value = "postsById", key = "#id")
+  public PostResponseDto getById(UUID id, UUID userId, String role) {
+	log.debug("Fetching post {} with view tracking for user {}", id, userId);
+
+	Post post = postRepo.findByIdAndStatus(id, Post.PostStatus.PUBLISHED)
+						.orElseThrow(() -> new PostNotFoundException(id));
+
+	// ── Track view asynchronously to avoid blocking response ──
+	trackUniqueView(id, userId);
+
+	return PostMapper.toDto(post);
+  }
+
+  /**
+   * GET post by slug with view tracking for authenticated users.
+   * Tracks unique views in Redis and increments viewCount.
+   *
+   * @param slug Post URL-friendly slug
+   * @param userId Optional UUID of viewing user (from X-User-Id header)
+   * @return Full PostResponseDto with current viewCount
+   */
+  @Override
+  @Transactional
   @Cacheable(value = "postsBySlug", key = "#slug")
-  public PostResponseDto getBySlug(String slug) {
-	log.debug("Cache miss - fetching post by slug from DB: {}", slug);
+  public PostResponseDto getBySlug(String slug, UUID userId, String role) {
+	log.debug("Fetching post by slug {} with view tracking for user {}", slug, userId);
+
 	Post post = postRepo.findBySlugAndStatus(slug, Post.PostStatus.PUBLISHED)
 						.orElseThrow(() -> new PostNotFoundException(slug));
+
+	// ── Track view asynchronously to avoid blocking response ──
+	trackUniqueView(post.getId(), userId);
+
 	return PostMapper.toDto(post);
   }
 
   @Override
   @Transactional(readOnly = true)
   public PagedResponse <PostSummaryResponse> getByAuthorId(
-		  UUID authorId, int page, int size, String sortBy) {
+		  UUID authorId, UUID requesterId, int page, int size, String sortBy, String role) {
+
 	Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
 
-	Page <Post> posts = postRepo.findByAuthorIdAndStatus(authorId, Post.PostStatus.PUBLISHED, pageable);
+	boolean isAdmin =
+			"ADMIN".equals(role) || "OWNER".equals(role);
 
-	return PagedResponse.from(posts.map(PostMapper::toSummaryDto));
+	boolean isSameAuthor =
+			requesterId != null &&
+			requesterId.equals(authorId);
+
+	Page <Post> posts;
+
+	if(isAdmin || isSameAuthor) {
+	  posts = postRepo.findByAuthorId(authorId, pageable);
+	}
+	else {
+	  posts = postRepo.findByAuthorIdAndStatus(
+			  authorId,
+			  Post.PostStatus.PUBLISHED,
+			  pageable
+											  );
+	}
+
+	return PagedResponse.from(
+			posts.map(PostMapper::toSummaryDto)
+							 );
   }
 
   @Override
   @Transactional(readOnly = true)
-  public PagedResponse <PostSummaryResponse> getByTag(String tag, int page, int size) {
+  public PagedResponse <PostSummaryResponse> getByTag(String tag, int page, int size, String role) {
 	Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 	Page <Post> posts = postRepo.findPublishedByTag(tag, pageable);
 	return PagedResponse.from(posts.map(PostMapper::toSummaryDto));
@@ -251,4 +295,60 @@ public class PostServiceImpl implements PostService {
 			page >= totalPages - 1
 	);
   }
+
+
+  private Post findPostAndVerifyOwnership(UUID postId, UUID authorId, String role) {
+	Post post = postRepo.findById(postId)
+						.orElseThrow(() -> new PostNotFoundException(postId));
+
+	boolean isAdmin = role.equals("ADMIN") || role.equals("OWNER");
+
+	if(!isAdmin && !post.getAuthorId().equals(authorId)) {
+	  throw new UnauthorizedException("You can only modify your own posts");
+	}
+
+	return post;
+  }
+
+  private void validateAccess(Post post, UUID userId, String role) {
+	boolean isAdmin =
+			"ADMIN".equals(role) || "OWNER".equals(role);
+
+	boolean isAuthor =
+			userId != null &&
+			post.getAuthorId().equals(userId);
+
+	boolean canAccess =
+			post.getStatus() == Post.PostStatus.PUBLISHED
+			|| isAdmin
+			|| isAuthor;
+
+	if(!canAccess) {
+	  throw new UnauthorizedException("You cannot access this post");
+	}
+  }
+
+  private void trackUniqueView(UUID postId, UUID userId) {
+	if(userId == null) { return; }
+
+	String redisKey = String.format(VIEWER_KEY_PREFIX, postId, userId);
+
+	Boolean isNewViewer = redisTemplate.opsForValue().setIfAbsent(
+			redisKey,
+			"1",
+			Duration.ofDays(VIEWER_TTL_DAYS)
+																 );
+	// ── If new viewer: increment counter and publish event ──
+	if(Boolean.TRUE.equals(isNewViewer)) {
+	  // Increment viewCount in database efficiently
+	  postRepo.incrementViewCount(postId);
+
+	  // Publish event for analytics service to consume
+	  eventPublisher.publishEvent(new PostViewedEvent(postId, userId));
+
+	  log.debug("Post {} viewed by user {}: viewCount incremented", postId, userId);
+	}
+  }
+
+
 }

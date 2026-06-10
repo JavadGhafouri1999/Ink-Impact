@@ -25,16 +25,16 @@ public interface PostService {
 
   PagedResponse <PostSummaryResponse> getAllPosts(String role, int page, int size, String sortBy);
 
-  PostResponseDto getById(UUID id);
-
   boolean existsById(UUID id);
 
-  PostResponseDto getBySlug(String slug);
+  PostResponseDto getById(UUID id, UUID userId, String role);
+
+  PostResponseDto getBySlug(String slug, UUID userId, String role);
 
   PagedResponse <PostSummaryResponse> getByAuthorId(
-		  UUID authorId, int page, int size, String sortBy);
+		  UUID authorId, UUID requesterId, int page, int size, String sortBy, String role);
 
   PagedResponse <PostSummaryResponse> search(String q, int page, int size);
 
-  PagedResponse <PostSummaryResponse> getByTag(String tag, int page, int size);
+  PagedResponse <PostSummaryResponse> getByTag(String tag, int page, int size, String role);
 }

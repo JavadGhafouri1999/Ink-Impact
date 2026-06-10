@@ -58,16 +58,29 @@ public class PostController {
   @Operation(
 		  summary = "Get post by ID",
 		  description = "Retrieve a specific post by its unique identifier (UUID)")
-  public ResponseEntity <PostResponseDto> getById(@PathVariable UUID id) {
-	return ResponseEntity.ok(postService.getById(id));
+  public ResponseEntity <PostResponseDto> getById
+		  (@PathVariable UUID id,
+		   @RequestHeader(value = "X-User-Id", required = false) String userId,
+		   @RequestHeader(value = "X-User-Role", required = false) String role
+		  ) {
+
+	// ── Convert userId string to UUID, pass null if not authenticated ──
+	UUID userIdUuid = userId != null ? UUID.fromString(userId) : null;
+	return ResponseEntity.ok(postService.getById(id, userIdUuid, role));
   }
 
   @GetMapping("/slug/{slug}")
   @Operation(
 		  summary = "Get post by slug",
 		  description = "Retrieve a specific post by its URL-friendly slug")
-  public ResponseEntity <PostResponseDto> getBySlug(@PathVariable String slug) {
-	return ResponseEntity.ok(postService.getBySlug(slug));
+  public ResponseEntity <PostResponseDto> getBySlug
+		  (@PathVariable String slug,
+		   @RequestHeader(value = "X-User-Id", required = false) String userId,
+		   @RequestHeader(value = "X-User-Role", required = false) String role
+		  ) {
+
+	UUID userIdUuid = userId != null ? UUID.fromString(userId) : null;
+	return ResponseEntity.ok(postService.getBySlug(slug, userIdUuid, role));
   }
 
   @GetMapping("/author/{authorId}")
@@ -78,9 +91,22 @@ public class PostController {
 		  @PathVariable UUID authorId,
 		  @RequestParam(defaultValue = "0") int page,
 		  @RequestParam(defaultValue = "10") int size,
-		  @RequestParam(defaultValue = "createdAt") String sortBy) {
+		  @RequestParam(defaultValue = "createdAt") String sortBy,
+		  @RequestHeader(value = "X-User-Id", required = false) String userId,
+		  @RequestHeader(value = "X-User-Role", required = false) String role) {
 
-	return ResponseEntity.ok(postService.getByAuthorId(authorId, page, size, sortBy));
+	UUID requesterId =
+			userId != null ? UUID.fromString(userId) : null;
+
+	return ResponseEntity.ok(
+			postService.getByAuthorId(
+					authorId,
+					requesterId,
+					page,
+					size,
+					sortBy,
+					role)
+							);
   }
 
   @GetMapping("/tag/{tag}")
@@ -90,8 +116,10 @@ public class PostController {
   public ResponseEntity <PagedResponse <PostSummaryResponse>> getByTag(
 		  @PathVariable String tag,
 		  @RequestParam(defaultValue = "0") int page,
-		  @RequestParam(defaultValue = "10") int size) {
-	return ResponseEntity.ok(postService.getByTag(tag, page, size));
+		  @RequestParam(defaultValue = "10") int size,
+		  @RequestHeader(value = "X-User-Role", required = false) String role) {
+
+	return ResponseEntity.ok(postService.getByTag(tag, page, size, role));
   }
 
   @PostMapping
@@ -100,7 +128,7 @@ public class PostController {
 		  description = "Create a new post with the provided details")
   public ResponseEntity <PostResponseDto> create(
 		  @Valid @RequestBody PostCreateRequestDto postDto,
-		  @RequestHeader("X-User-ID") String userId,
+		  @RequestHeader("X-User-Id") String userId,
 		  @RequestHeader("X-User-Role") String role) {
 	UUID authorId = UUID.fromString(userId);
 	return ResponseEntity.ok(postService.create(postDto, authorId, role));
@@ -113,7 +141,7 @@ public class PostController {
   public ResponseEntity <PostResponseDto> update(
 		  @PathVariable UUID id,
 		  @Valid @RequestBody PostUpdateRequestDto postDto,
-		  @RequestHeader("X-User-ID") String userId,
+		  @RequestHeader("X-User-Id") String userId,
 		  @RequestHeader("X-User-Role") String role) {
 	UUID authorId = UUID.fromString(userId);
 	return ResponseEntity.ok(postService.update(id, authorId, postDto, role));
@@ -123,7 +151,7 @@ public class PostController {
   @Operation(summary = "Delete a post", description = "Delete a specific post by its ID")
   public ResponseEntity <String> delete(
 		  @PathVariable UUID id,
-		  @RequestHeader("X-User-ID") String userId,
+		  @RequestHeader("X-User-Id") String userId,
 		  @RequestHeader("X-User-Role") String role) {
 	UUID authorId = UUID.fromString(userId);
 	postService.deletePost(authorId, id, role);

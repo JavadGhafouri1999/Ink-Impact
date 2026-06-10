@@ -17,5 +17,6 @@ public record PostResponseDto(
 		String bannerImageUrl,
 		String status,
 		UUID authorId,
+		Long viewCount,
 		LocalDateTime createdAt,
 		LocalDateTime updatedAt) { }

@@ -54,6 +54,13 @@ public class Post {
   @Column(name = "image_url")
   private List <String> images = new ArrayList <>();
 
+  // ── VIEW COUNT (ALL-TIME UNIQUE USER VIEWS) ──
+  // Incremented whenever a unique user views this post.
+  // Default value of 0L ensures consistency.
+  // NOT nullable to prevent null issues in queries/sorting.
+  @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+  private Long viewCount = 0L;
+
   @CreationTimestamp
   @Column(name = "created_at", updatable = false)
   private LocalDateTime createdAt;
@@ -72,6 +79,7 @@ public class Post {
 	this.status = status;
 	this.tags = tags;
 	this.title = title;
+	this.viewCount = 0L;
   }
 
   public enum PostStatus {

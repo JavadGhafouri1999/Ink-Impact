@@ -3,6 +3,7 @@ package com.weblog.postservice.listeners;
 import com.weblog.postservice.event.PostCreatedEvent;
 import com.weblog.postservice.event.PostDeletedEvent;
 import com.weblog.postservice.event.PostUpdatedEvent;
+import com.weblog.postservice.event.PostViewedEvent;
 import com.weblog.postservice.kafka.KafkaProducer;
 import com.weblog.postservice.model.Post;
 import com.weblog.postservice.model.PostSearchDocument;
@@ -60,6 +61,45 @@ public class PostSyncListener {
 	}
   }
 
+  /**
+   * Handles PostViewedEvent: when a unique user views a post.
+   *
+   * Publishes the view event to Kafka for analytics service.
+   * Analytics service will:
+   * - Deduplicate views across distributed systems
+   * - Track user behavior patterns
+   * - Generate popularity metrics
+   *
+   * ViewCount in the Post entity is incremented directly in PostServiceImpl.trackUniqueView()
+   * to avoid waiting for this async operation.
+   *
+   * @param event PostViewedEvent with postId and userId
+   */
+  @Async("postTaskExecutor")
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  public void handleViewed(PostViewedEvent event) {
+	try {
+	  // ── Publish to Kafka for analytics service ──
+	  // Analytics service will consume and process view events
+	  kafkaProducer.sendViewEvent(event.postId(), event.userId());
+
+	  log.debug("Published view event for post {} by user {} to Kafka", event.postId(), event.userId());
+
+	} catch(Exception e) {
+	  log.error(
+			  "Failed publishing view event for post {} by user {}",
+			  event.postId(),
+			  event.userId(),
+			  e
+			   );
+	}
+  }
+
+  /**
+   * Syncs Post entity to Elasticsearch PostSearchDocument.
+   * Keeps search index in sync with database changes.
+   * Includes viewCount so Elasticsearch can support sorting by popularity.
+   */
   private void syncElastic(Post post) {
 	try {
 	  PostSearchDocument doc = new PostSearchDocument();
@@ -78,9 +118,12 @@ public class PostSyncListener {
 	  doc.setBannerImageUrl(post.getBannerImageUrl());
 	  doc.setImages(post.getImages());
 
+	  // ── Include viewCount in Elasticsearch sync ──
+	  doc.setViewCount(post.getViewCount());
+
 	  searchRepo.save(doc);
 
-	  log.info("Indexed post {} in Elasticsearch", post.getId());
+	  log.info("Indexed post {} in Elasticsearch with viewCount {}", post.getId(), post.getViewCount());
 
 	} catch(Exception e) {
 	  log.error("Failed indexing post {}", post.getId(), e);

@@ -26,6 +26,7 @@ public final class PostMapper {
 			post.getBannerImageUrl(),
 			String.valueOf(post.getStatus()),
 			post.getAuthorId(),
+			post.getViewCount(),
 			post.getCreatedAt(),
 			post.getUpdatedAt()
 	);
@@ -44,7 +45,8 @@ public final class PostMapper {
 			post.getTags(),
 			post.getBannerImageUrl(),
 			post.getAuthorId(),
-			post.getCreatedAt()
+			post.getCreatedAt(),
+			post.getViewCount()
 	);
   }
 
@@ -79,7 +81,8 @@ public final class PostMapper {
 			doc.getTags(),
 			doc.getBannerImageUrl(),
 			UUID.fromString(doc.getAuthorId()),
-			LocalDateTime.parse(doc.getCreatedAt())
+			LocalDateTime.parse(doc.getCreatedAt()),
+			doc.getViewCount()
 	);
   }
 }

@@ -11,6 +11,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+
+/**
+ * Runs on application startup to reindex all posts from PostgreSQL to Elasticsearch.
+ * Ensures search index is in sync with database and includes viewCount for popularity sorting.
+ */
 @Component
 @RequiredArgsConstructor
 public class ElasticsearchReindexRunner {
@@ -36,6 +41,10 @@ public class ElasticsearchReindexRunner {
 	  doc.setStatus(post.getStatus().name());
 	  doc.setBannerImageUrl(post.getBannerImageUrl());
 	  doc.setImages(post.getImages());
+
+	  // ── Include viewCount in Elasticsearch index ──
+	  // Allows sorting and filtering by popularity in search results
+	  doc.setViewCount(post.getViewCount());
 
 	  searchRepo.save(doc);
 	}

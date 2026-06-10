@@ -25,7 +25,7 @@ public class CommentController {
   @PostMapping
   public ResponseEntity <CommentResponseDto> create(
 		  @Valid @RequestBody CommentRequestDto request,
-		  @RequestHeader("X-User-ID") String userId,
+		  @RequestHeader("X-User-Id") String userId,
 		  @RequestHeader("X-User-Role") String role) {
 	UUID user = UUID.fromString(userId);
 	return ResponseEntity.ok(commentService.create(user, role, request));
@@ -35,7 +35,7 @@ public class CommentController {
   public ResponseEntity <CommentResponseDto> update(
 		  @PathVariable UUID id,
 		  @Valid @RequestBody CommentUpdateDto request,
-		  @RequestHeader("X-User-ID") String userId,
+		  @RequestHeader("X-User-Id") String userId,
 		  @RequestHeader("X-User-Role") String role) {
 	UUID user = UUID.fromString(userId);
 	return ResponseEntity.ok(commentService.update(id, role, request));
@@ -64,13 +64,13 @@ public class CommentController {
   public ResponseEntity <String> deleteByPostId(
 		  @PathVariable UUID postId, @RequestHeader("X-User-Role") String role) {
 	commentService.deleteByPostId(postId, role);
-	return ResponseEntity.ok("Comments for post Deleted - Post-ID: " + postId);
+	return ResponseEntity.ok("Comments for post Deleted - Post-Id: " + postId);
   }
 
   @DeleteMapping("/usercomment/{targetUserId}")
   public ResponseEntity <String> deleteByUserId(
 		  @PathVariable UUID targetUserId, @RequestHeader("X-User-Role") String role) {
 	commentService.deleteByUserId(targetUserId, role);
-	return ResponseEntity.ok("Comments for user Deleted - User-ID: " + targetUserId);
+	return ResponseEntity.ok("Comments for user Deleted - User-Id: " + targetUserId);
   }
 }

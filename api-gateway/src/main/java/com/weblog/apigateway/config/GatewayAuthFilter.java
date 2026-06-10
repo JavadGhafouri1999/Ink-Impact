@@ -35,19 +35,20 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
   private static final List <String> PROTECTED_GET_OVERRIDES =
 		  List.of("/api/posts/admin");
 
-  private static final List <String>              PUBLIC_POST_PATHS     =
+  private static final List <String> PUBLIC_POST_PATHS =
 		  List.of("/api/auth/login",
 				  "/api/auth/register",
 				  "/api/auth/refresh");
+
   private static final Map <String, Set <String>> ROLE_RESTRICTED_PATHS =
-		  Map.of(
-				  "/api/posts/**", Set.of("AUTHOR", "ADMIN", "OWNER"),
-				  "/api/comments/**", Set.of("USER", "AUTHOR", "ADMIN", "OWNER"),
-				  "/api/admin/**", Set.of("ADMIN", "OWNER"),
-				  "/api/analytics/**", Set.of("ADMIN", "OWNER"));
-  private final        SecretKey                  secretKey;
-  private final        AntPathMatcher             matcher               = new AntPathMatcher();
-  private final        UserActivityProducer       activityProducer;
+		  Map.of("/api/posts/**", Set.of("AUTHOR", "ADMIN", "OWNER"),
+				 "/api/comments/**", Set.of("USER", "AUTHOR", "ADMIN", "OWNER"),
+				 "/api/admin/**", Set.of("ADMIN", "OWNER"),
+				 "/api/analytics/**", Set.of("ADMIN", "OWNER"));
+
+  private final SecretKey            secretKey;
+  private final AntPathMatcher       matcher = new AntPathMatcher();
+  private final UserActivityProducer activityProducer;
 
   // ── Helper-classes ─────────────────────────────────────
   public GatewayAuthFilter(@Value("${jwt.secret}") String secret, UserActivityProducer activityProducer) {
@@ -89,8 +90,32 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
 	String method = exchange.getRequest().getMethod().name();
 
 	// ── Publics ─────────────────────────────────────────────
-	if(method.equals("GET") && matches(path, PUBLIC_GET_PATHS) && !matches(path, PROTECTED_GET_OVERRIDES)) {
-	  return chain.filter(exchange);
+	if(method.equals("GET")
+	   && matches(path, PUBLIC_GET_PATHS)
+	   && !matches(path, PROTECTED_GET_OVERRIDES)) {
+
+	  String token = extractToken(exchange);
+
+	  // anonymous request
+	  if(token == null) {
+		return chain.filter(exchange);
+	  }
+
+	  try {
+		Claims claims = Jwts.parser()
+							.verifyWith(secretKey)
+							.build()
+							.parseSignedClaims(token)
+							.getPayload();
+
+		String role = claims.get("role", String.class);
+
+		return getVoidMono(exchange, chain, claims, role);
+
+	  } catch(Exception e) {
+		exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+		return exchange.getResponse().setComplete();
+	  }
 	}
 	if(method.equals("POST") && matches(path, PUBLIC_POST_PATHS)) {
 	  return chain.filter(exchange);
@@ -118,10 +143,12 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
 	String role = claims.get("role", String.class);
 	String userId = claims.getSubject();
 	String username = claims.get("username", String.class);
-	String ip = exchange.getRequest().getRemoteAddress() != null ? exchange.getRequest()
-																		   .getRemoteAddress()
-																		   .getAddress()
-																		   .getHostAddress() : "unknown";
+	String ip = exchange.getRequest().getRemoteAddress() != null
+				? exchange.getRequest()
+						  .getRemoteAddress()
+						  .getAddress()
+						  .getHostAddress()
+				: "unknown";
 
 	String userAgent = exchange.getRequest().getHeaders().getFirst("User-Agent");
 
@@ -143,6 +170,11 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
 	activityProducer.sendActivityEvent(userId, List.of(role), path, method, ip, userAgent);
 
 	// ── Forward-user-info ───────────────────────────────────
+	return getVoidMono(exchange, chain, claims, role);
+  }
+
+  private Mono <Void> getVoidMono(ServerWebExchange exchange, GatewayFilterChain chain, Claims claims,
+								  String role) {
 	ServerWebExchange mutated = exchange.mutate().request(r -> r.headers(h -> {
 	  h.add("X-User-Id", claims.getSubject());
 	  h.add("X-User-Username", claims.get("username", String.class));

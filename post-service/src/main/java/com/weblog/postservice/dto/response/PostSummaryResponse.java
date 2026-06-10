@@ -15,5 +15,7 @@ public record PostSummaryResponse(
 		String bannerImageUrl,
 		UUID authorId,
 		@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-		LocalDateTime createdAt) {
+		LocalDateTime createdAt,
+		Long viewCount  // ← All-time unique user view count for sorting/filtering in list views
+) {
 }
