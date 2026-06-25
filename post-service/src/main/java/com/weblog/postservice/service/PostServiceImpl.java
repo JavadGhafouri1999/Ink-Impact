@@ -16,6 +16,7 @@ import com.weblog.postservice.event.PostDeletedEvent;
 import com.weblog.postservice.event.PostUpdatedEvent;
 import com.weblog.postservice.event.PostViewedEvent;
 import com.weblog.postservice.exception.DuplicateTitleException;
+import com.weblog.postservice.exception.FileStorageException;
 import com.weblog.postservice.exception.PostNotFoundException;
 import com.weblog.postservice.exception.UnauthorizedException;
 import com.weblog.postservice.model.Post;
@@ -38,8 +39,10 @@ import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,25 +55,59 @@ public class PostServiceImpl implements PostService {
   private final ElasticsearchOperations        operations;
   private final ApplicationEventPublisher      eventPublisher;
   private final RedisTemplate <String, String> redisTemplate; // ← For tracking unique viewers
+  private final FileStorageService             fileStorageService;
 
   // ── Redis key prefix for view tracking ──
-  private static final String VIEWER_KEY_PREFIX = "post:%s:viewer:%s"; // ← post:{postId}:viewer:{userId}
+  private static final String VIEWER_KEY_PREFIX = "post:%s:viewer:%s"; // ←
+  // post:{postId}:viewer:{userId}
   private static final long   VIEWER_TTL_DAYS   = 30; // ← Track viewers for 30 days
 
 
   @Override
   @Transactional // Good for write operations
-  public PostResponseDto create(PostCreateRequestDto request, UUID authorId, String role) {
+  public PostResponseDto create(
+		  PostCreateRequestDto request,
+		  MultipartFile bannerImage,
+		  List <MultipartFile> images,
+		  UUID authorId,
+		  String role) {
+
 	// 1. Authorization check
 	if(!role.equals("AUTHOR") && !role.equals("ADMIN") && !role.equals("OWNER")) {
 	  throw new UnauthorizedException("You are not allowed to create posts");
 	}
 
+	if(images != null && images.size() > 20) {
+	  throw new FileStorageException(
+			  "Maximum 20 images allowed"
+	  );
+	}
+
 	try {
-	  Post post = PostMapper.toModel(request, authorId);
+
+	  if(postRepo.existsByTitle(request.title())) {
+		throw new DuplicateTitleException(request.title());
+	  }
+
+	  // Handle banner image upload
+	  String bannerImageUrl = null;
+	  if(bannerImage != null && !bannerImage.isEmpty()) {
+		bannerImageUrl = fileStorageService.uploadFile(bannerImage, "banners");
+	  }
+
+	  // Handle content images upload
+	  List <String> imageUrls = new ArrayList <>();
+	  if(images != null && !images.isEmpty()) {
+		for(MultipartFile image : images) {
+		  String imageUrl = fileStorageService.uploadFile(image, "content");
+		  imageUrls.add(imageUrl);
+		}
+	  }
+
+	  // Create request with uploaded file URLs
+	  Post post = PostMapper.toModel(request, authorId, bannerImageUrl, imageUrls);
 	  Post savedPost = postRepo.save(post);
 
-	  // publish event AFTER DB save
 	  eventPublisher.publishEvent(new PostCreatedEvent(savedPost));
 
 	  return PostMapper.toDto(savedPost);
@@ -251,10 +288,26 @@ public class PostServiceImpl implements PostService {
 	}
 
 	Post post = findPostAndVerifyOwnership(id, authorId, role);
+
+	// ── DELETE BANNER IMAGE IF EXISTS ──
+	if(post.getBannerImageUrl() != null && !post.getBannerImageUrl().isEmpty()) {
+	  String bannerFilename = extractFilename(post.getBannerImageUrl());
+	  fileStorageService.deletePostImage(bannerFilename);
+	}
+
+	// ── DELETE ALL INLINE IMAGES ──
+	if(post.getImages() != null && !post.getImages().isEmpty()) {
+	  for(String imageUrl : post.getImages()) {
+		String filename = extractFilename(imageUrl);
+		fileStorageService.deletePostImage(filename);
+	  }
+	}
+
 	postRepo.delete(post);
 
 	eventPublisher.publishEvent(new PostDeletedEvent(id));
   }
+
 
   @Override
   @Transactional(readOnly = true)
@@ -315,7 +368,6 @@ public class PostServiceImpl implements PostService {
 			"ADMIN".equals(role) || "OWNER".equals(role);
 
 	boolean isAuthor =
-			userId != null &&
 			post.getAuthorId().equals(userId);
 
 	boolean canAccess =
@@ -350,5 +402,12 @@ public class PostServiceImpl implements PostService {
 	}
   }
 
+  private String extractFilename(String url) {
+	if(url == null || url.isEmpty()) {
+	  return "";
+	}
+	int lastSlash = url.lastIndexOf('/');
+	return lastSlash >= 0 ? url.substring(lastSlash + 1) : url;
+  }
 
 }

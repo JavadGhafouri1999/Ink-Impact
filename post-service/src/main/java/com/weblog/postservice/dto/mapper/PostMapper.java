@@ -21,8 +21,12 @@ public final class PostMapper {
 			post.getTitle(),
 			post.getSlug(),
 			post.getContent(),
-			List.copyOf(post.getTags()),
-			List.copyOf(post.getImages()),
+			post.getTags() == null
+			? List.of()
+			: List.copyOf(post.getTags()),
+			post.getImages() == null
+			? List.of()
+			: List.copyOf(post.getImages()),
 			post.getBannerImageUrl(),
 			String.valueOf(post.getStatus()),
 			post.getAuthorId(),
@@ -50,18 +54,38 @@ public final class PostMapper {
 	);
   }
 
-  public static Post toModel(PostCreateRequestDto request, UUID authorId) {
+  public static Post toModel(
+		  PostCreateRequestDto request,
+		  UUID authorId,
+		  String bannerImageUrl,
+		  List <String> imageUrls
+							) {
 	Post post = new Post();
+
 	post.setTitle(request.title());
 	post.setContent(request.content());
-	post.setSlug(SlugGenerator.generateSlug(request.title()));
+
+	post.setSlug(
+			SlugGenerator.generateSlug(
+					request.title()
+									  )
+				);
+
 	post.setAuthorId(authorId);
 
-	post.setTags(request.tags() != null ? request.tags() : List.of());
+	post.setTags(
+			request.tags() != null
+			? List.copyOf(request.tags())
+			: List.of()
+				);
 
-	post.setBannerImageUrl(request.bannerImageUrl());
+	post.setBannerImageUrl(bannerImageUrl);
 
-	post.setImages(request.images() != null ? request.images() : List.of());
+	post.setImages(
+			imageUrls != null
+			? List.copyOf(imageUrls)
+			: List.of()
+				  );
 
 	post.setStatus(Post.PostStatus.DRAFT);
 

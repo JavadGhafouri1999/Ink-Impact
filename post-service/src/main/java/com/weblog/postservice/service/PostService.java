@@ -10,12 +10,19 @@ import com.weblog.postservice.dto.request.PostUpdateRequestDto;
 import com.weblog.postservice.dto.response.PagedResponse;
 import com.weblog.postservice.dto.response.PostResponseDto;
 import com.weblog.postservice.dto.response.PostSummaryResponse;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface PostService {
 
-  PostResponseDto create(PostCreateRequestDto request, UUID authorId, String role);
+  PostResponseDto create(
+		  PostCreateRequestDto request,
+		  MultipartFile bannerImage,
+		  List <MultipartFile> images,
+		  UUID authorId,
+		  String role);
 
   PostResponseDto update(UUID id, UUID authorId, PostUpdateRequestDto request, String role);
 

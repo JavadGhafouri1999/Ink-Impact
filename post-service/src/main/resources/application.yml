@@ -39,9 +39,20 @@ spring    :
     uris               : http://elasticsearch:9200
     connection-timeout : 5s
     socket-timeout     : 30s
+  
+  # Multipart upload config
+  servlet       :
+    multipart :
+      max-file-size    : 5MB
+      max-request-size : 20MB
 
 server    :
   port : 4000
+
+app       :
+  storage :
+    post-images-dir : /app/uploads/posts
+    max-file-size   : 5242880  # 5MB
 
 logging   :
   pattern :

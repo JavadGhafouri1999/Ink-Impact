@@ -162,6 +162,8 @@ services :
         condition : service_healthy
       elasticsearch :
         condition : service_healthy
+    volumes        :
+      - auth-uploads:/app/uploads/users
     environment    :
       SPRING_DATASOURCE_URL      : jdbc:postgresql://auth-db:5432/auth_db
       SPRING_DATASOURCE_USERNAME : ${POSTGRES_USER}
@@ -183,6 +185,8 @@ services :
         condition : service_healthy
       elasticsearch :
         condition : service_healthy
+    volumes        :
+      - post-uploads:/app/uploads/posts
     environment    :
       SPRING_DATASOURCE_URL          : jdbc:postgresql://post-db:5432/post_db
       SPRING_DATASOURCE_USERNAME     : ${POSTGRES_USER}
@@ -252,6 +256,8 @@ volumes  :
   auth-db         :
   redis-post-data :
   es-data         :
+  post-uploads    :
+  auth-uploads    :
 
 networks :
   blog-net :

@@ -19,12 +19,6 @@ public record PostCreateRequestDto(
 		List <
 				@NotBlank
 				@Size(min = 2, max = 30)
-						String> tags,
-
-		// main hero image
-		String bannerImageUrl,
-
-		// inline/content images
-		@Size(max = 20, message = "Maximum 20 images allowed")
-		List <@NotBlank String> images
+						String
+				> tags
 ) { }

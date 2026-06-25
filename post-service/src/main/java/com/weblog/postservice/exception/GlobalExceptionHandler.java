@@ -70,6 +70,14 @@ public class GlobalExceptionHandler {
 	return ResponseEntity.status(HttpStatus.FORBIDDEN).body(buildResponse(403, ex.getMessage()));
   }
 
+
+  @ExceptionHandler(FileStorageException.class)
+  public ResponseEntity <Map <String, Object>> handleFileStorage(FileStorageException ex) {
+	log.warn("File storage error: {}", ex.getMessage());
+
+	return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(buildResponse(500, ex.getMessage()));
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity <Map <String, Object>> handleGeneral(Exception ex) {
 	log.error("Unexpected error: {}", ex.getMessage(), ex);

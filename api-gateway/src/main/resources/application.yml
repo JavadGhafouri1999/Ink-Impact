@@ -70,6 +70,13 @@ spring  :
           filters    :
             - StripPrefix=0
         
+        - id         : post-uploads-route
+          uri        : http://post-service:4000
+          predicates :
+            - Path=/uploads/**
+          filters    :
+            - StripPrefix=0
+        
         # ===================== COMMENT SERVICE =====================
         - id         : comment-service-route
           uri        : http://comment-service:4001

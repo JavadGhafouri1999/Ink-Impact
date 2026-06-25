@@ -10,9 +10,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -122,16 +125,25 @@ public class PostController {
 	return ResponseEntity.ok(postService.getByTag(tag, page, size, role));
   }
 
-  @PostMapping
+
+  @PostMapping(
+		  consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+  )
   @Operation(
 		  summary = "Create a new post",
 		  description = "Create a new post with the provided details")
   public ResponseEntity <PostResponseDto> create(
-		  @Valid @RequestBody PostCreateRequestDto postDto,
+		  @Valid @RequestPart("post") PostCreateRequestDto postDto,
+		  @RequestPart(value = "bannerImage", required = false) MultipartFile bannerImage,
+		  @RequestPart(value = "images", required = false) List <MultipartFile> images,
 		  @RequestHeader("X-User-Id") String userId,
-		  @RequestHeader("X-User-Role") String role) {
+		  @RequestHeader("X-User-Role") String role
+												) {
+
 	UUID authorId = UUID.fromString(userId);
-	return ResponseEntity.ok(postService.create(postDto, authorId, role));
+	return ResponseEntity.ok(
+			postService.create(postDto, bannerImage, images, authorId, role)
+							);
   }
 
   @PatchMapping("/{id}")

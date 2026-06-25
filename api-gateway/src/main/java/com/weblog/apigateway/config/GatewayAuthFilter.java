@@ -89,6 +89,10 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
 
 	String method = exchange.getRequest().getMethod().name();
 
+	if(matches(path, "/uploads/**")) {
+	  return chain.filter(exchange);
+	}
+
 	// ── Publics ─────────────────────────────────────────────
 	if(method.equals("GET")
 	   && matches(path, PUBLIC_GET_PATHS)
@@ -118,6 +122,11 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
 	  }
 	}
 	if(method.equals("POST") && matches(path, PUBLIC_POST_PATHS)) {
+	  return chain.filter(exchange);
+	}
+
+	// ── Public static files (NO AUTH) ──
+	if(matches(path, "/uploads/**")) {
 	  return chain.filter(exchange);
 	}
 
