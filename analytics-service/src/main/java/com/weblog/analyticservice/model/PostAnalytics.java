@@ -1,5 +1,8 @@
 package com.weblog.analyticservice.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.*;
 
 import java.time.Instant;
@@ -12,8 +15,11 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
+@Table(name = "post_analytics")
 public class PostAnalytics {
 
+  @Id
   private UUID          id;
   private String        postId;
   private String        title;

@@ -10,15 +10,15 @@ import java.nio.file.Paths;
 @Configuration
 public class FileStorageConfig implements WebMvcConfigurer {
 
-  @Value("${app.storage.post-images-dir:uploads/posts}")
-  private String postImagesDir;
+  @Value("${app.storage.post-images-dir}")
+  private String uploadDir;
 
   @Override
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
-	String uploadPath = Paths.get(postImagesDir).toFile().getAbsolutePath();
-
-	System.out.println("RESOURCE HANDLER PATH = " + uploadPath);
-
-	registry.addResourceHandler("/uploads/posts/**").addResourceLocations("file:" + uploadPath + "/");
+	registry
+			.addResourceHandler("/uploads/posts/**")
+			.addResourceLocations(
+					"file:" + Paths.get(uploadDir).toAbsolutePath() + "/"
+								 );
   }
 }

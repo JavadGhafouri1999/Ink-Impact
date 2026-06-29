@@ -19,8 +19,6 @@ public record UpdateProfileRequest(
 						 "uppercase, and one special character")
 		String password,
 
-		String avatar,
-
 		@Pattern(regexp = "^(\\+\\d{1,3}[-.]?)?\\d{10,14}$",
 				 message = "Phone number must be 10-14 digits, can start with + and country code  e.g : " +
 						   "+12345678901")

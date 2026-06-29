@@ -30,7 +30,7 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
 		  LoggerFactory.getLogger(GatewayAuthFilter.class);
   // ── Paths ──────────────────────────────────────────────
   private static final List <String> PUBLIC_GET_PATHS =
-		  List.of("/api/posts/**", "/api/comments/**");
+		  List.of("/api/posts/**", "/api/comments/**", "/api/admin/**", "/api/analytics/**");
 
   private static final List <String> PROTECTED_GET_OVERRIDES =
 		  List.of("/api/posts/admin");
@@ -40,11 +40,13 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
 				  "/api/auth/register",
 				  "/api/auth/refresh");
 
+  // TODO: CHANGE THE ADMIN AND ANALYTICS ROUTE TO SECURE
   private static final Map <String, Set <String>> ROLE_RESTRICTED_PATHS =
 		  Map.of("/api/posts/**", Set.of("AUTHOR", "ADMIN", "OWNER"),
-				 "/api/comments/**", Set.of("USER", "AUTHOR", "ADMIN", "OWNER"),
-				 "/api/admin/**", Set.of("ADMIN", "OWNER"),
-				 "/api/analytics/**", Set.of("ADMIN", "OWNER"));
+				 "/api/comments/**", Set.of("USER", "AUTHOR", "ADMIN", "OWNER")
+				  //				 "/api/admin/**", Set.of("ADMIN", "OWNER"),
+				  //				 "/api/analytics/**", Set.of("ADMIN", "OWNER")
+				);
 
   private final SecretKey            secretKey;
   private final AntPathMatcher       matcher = new AntPathMatcher();
@@ -122,11 +124,6 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
 	  }
 	}
 	if(method.equals("POST") && matches(path, PUBLIC_POST_PATHS)) {
-	  return chain.filter(exchange);
-	}
-
-	// ── Public static files (NO AUTH) ──
-	if(matches(path, "/uploads/**")) {
 	  return chain.filter(exchange);
 	}
 

@@ -110,9 +110,25 @@ public class SessionServiceImpl implements SessionService {
   }
 
   @Override
-  public List <SessionResponse> getUserSessions(UUID userId) {
-	return sessionRepo.findByUserIdAndActive(userId, true).stream().map(SessionResponse::toDto).toList();
+  public List <SessionResponse> getUserSessions(UUID userId, String role) {
+	if(!"USER".equals(role)
+	   && !"SPECIAL".equals(role)
+	   && !"OWNER".equals(role)
+	   && !"ADMIN".equals(role)
+	   && !"AUTHOR".equals(role)) {
+	  throw new UnauthorizedException("Unauthorized Access");
+	}
+	return getSessions(userId);
   }
+
+  @Override
+  public List <SessionResponse> adminGetUserSessions(UUID userId, String role) {
+	if(!role.equals("ADMIN") && !role.equals("OWNER")) {
+	  throw new UnauthorizedException("Unauthorized Access");
+	}
+	return getSessions(userId);
+  }
+
 
   private String getClientIp(HttpServletRequest request) {
 	String xForwardedFor = request.getHeader("X-Forwarded-For");
@@ -120,5 +136,12 @@ public class SessionServiceImpl implements SessionService {
 	  return xForwardedFor.split(",")[0].trim();
 	}
 	return request.getRemoteAddr();
+  }
+
+  private List <SessionResponse> getSessions(UUID userId) {
+	return sessionRepo.findByUserIdAndActive(userId, true)
+					  .stream()
+					  .map(SessionResponse::toDto)
+					  .toList();
   }
 }

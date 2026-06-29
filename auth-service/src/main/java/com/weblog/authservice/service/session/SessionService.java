@@ -18,5 +18,7 @@ public interface SessionService {
 
   void logout(String refreshToken);
 
-  List <SessionResponse> getUserSessions(UUID userId);
+  List <SessionResponse> getUserSessions(UUID userId, String role);
+
+  List <SessionResponse> adminGetUserSessions(UUID userId, String role);
 }

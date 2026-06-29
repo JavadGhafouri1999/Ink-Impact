@@ -50,6 +50,13 @@ spring  :
                 redis-rate-limiter.burstCapacity : 40
             - StripPrefix=0
         
+        - id         : auth-uploads-route
+          uri        : http://auth-service:4005
+          predicates :
+            - Path=/uploads/auth/**
+          filters    :
+            - StripPrefix=0
+        
         # ===================== POST SERVICE =====================
         - id         : post-service-route
           uri        : http://post-service:4000
@@ -73,7 +80,7 @@ spring  :
         - id         : post-uploads-route
           uri        : http://post-service:4000
           predicates :
-            - Path=/uploads/**
+            - Path=/uploads/posts/**
           filters    :
             - StripPrefix=0
         
@@ -94,7 +101,7 @@ spring  :
         - id         : analytics-service-route
           uri        : http://analytics-service:4002
           predicates :
-            - Path=/api/analytics/**
+            - Path=/api/admin/analytics/**
           filters    :
             - name : RequestRateLimiter
               args :

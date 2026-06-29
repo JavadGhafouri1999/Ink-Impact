@@ -3,10 +3,12 @@ package com.weblog.authservice.service.user;
 import com.weblog.authservice.dto.mapper.UserMapper;
 import com.weblog.authservice.dto.request.LoginRequest;
 import com.weblog.authservice.dto.request.RegisterRequest;
+import com.weblog.authservice.dto.request.UpdateProfileRequest;
 import com.weblog.authservice.dto.response.AuthResponse;
 import com.weblog.authservice.dto.response.UserResponse;
 import com.weblog.authservice.exception.BadRequestException;
 import com.weblog.authservice.exception.UnauthorizedException;
+import com.weblog.authservice.exception.UserNotFoundException;
 import com.weblog.authservice.model.Session;
 import com.weblog.authservice.model.User;
 import com.weblog.authservice.repository.UserRepository;
@@ -17,17 +19,20 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-  private final UserRepository  userRepo;
-  private final PasswordEncoder passwordEncoder;
-  private final JwtService      jwtService;
-  private final SessionService  sessionService;
+  private final UserRepository     userRepo;
+  private final PasswordEncoder    passwordEncoder;
+  private final JwtService         jwtService;
+  private final SessionService     sessionService;
+  private final FileStorageService fileStorageService;
 
   @Override
   @Transactional
@@ -109,8 +114,64 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
+  public UserResponse updateProfile(UUID userId, UpdateProfileRequest request, MultipartFile avatar) {
+
+	User user = userRepo.findById(userId)
+						.orElseThrow(() -> new UserNotFoundException("User was not found"));
+
+	if(avatar != null && !avatar.isEmpty()) {
+
+	  String oldAvatar = user.getAvatarUrl();
+
+	  String newAvatar = fileStorageService.saveAvatar(avatar);
+
+	  user.setAvatarUrl(newAvatar);
+
+	  if(oldAvatar != null && !oldAvatar.isBlank()) {
+		fileStorageService.deleteAvatar(oldAvatar);
+	  }
+	}
+
+	user.setUsername(request.username());
+	user.setPhone(request.phoneNumber());
+
+	if(request.password() != null
+	   && !request.password().isBlank()) {
+
+	  user.setPassword(
+			  passwordEncoder.encode(request.password())
+					  );
+	}
+
+	User saved = userRepo.save(user);
+
+	return UserMapper.toDto(saved);
+  }
+
+  @Override
   @Transactional
   public void logout(String refreshToken) {
 	sessionService.logout(refreshToken);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public long countUsers(UUID userId, String role) {
+	if(!role.equals("ADMIN") && !role.equals("OWNER")) {
+	  throw new UnauthorizedException("Unauthorized Access");
+	}
+
+	// Use count query instead of loading all users
+	return userRepo.count();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List <UserResponse> listUsers(UUID userId, String role) {
+	if(!role.equals("ADMIN") && !role.equals("OWNER")) {
+	  throw new UnauthorizedException("Unauthorized Access");
+	}
+
+	return userRepo.findAll().stream().map(UserMapper::toDto).toList();
   }
 }

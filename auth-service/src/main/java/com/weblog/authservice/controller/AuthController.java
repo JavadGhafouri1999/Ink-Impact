@@ -2,8 +2,11 @@ package com.weblog.authservice.controller;
 
 import com.weblog.authservice.dto.request.LoginRequest;
 import com.weblog.authservice.dto.request.RegisterRequest;
+import com.weblog.authservice.dto.request.UpdateProfileRequest;
 import com.weblog.authservice.dto.response.AuthResponse;
+import com.weblog.authservice.dto.response.SessionResponse;
 import com.weblog.authservice.dto.response.UserResponse;
+import com.weblog.authservice.service.session.SessionService;
 import com.weblog.authservice.service.user.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,11 +14,15 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -37,7 +44,8 @@ public class AuthController {
   private static final String REFRESH_COOKIE_PATH = "/";
   private static final String REFRESH_COOKIE_NAME = "refresh_token";
 
-  private final UserService userService;
+  private final UserService    userService;
+  private final SessionService sessionService;
 
   @PostMapping("/register")
   public ResponseEntity <UserResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -65,6 +73,27 @@ public class AuthController {
 			response.accessToken(),
 			null // refresh token stays in the cookie, not the body
 	));
+  }
+
+  @PutMapping(value = "/profile",
+			  consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public UserResponse updateProfile(
+		  @RequestHeader("X-User-Id") String userId,
+		  @RequestHeader("X-User-Role") String role,
+		  @Valid @RequestPart("data") UpdateProfileRequest request,
+		  @RequestPart(value = "avatar", required = false) MultipartFile avatar
+								   ) {
+	UUID id = UUID.fromString(userId);
+	return userService.updateProfile(id, request, avatar);
+  }
+
+  @GetMapping(value = "/count")
+  public ResponseEntity <Long> countUsers(
+		  @RequestHeader("X-User-Id") String userId,
+		  @RequestHeader("X-User-Role") String role
+										 ) {
+	UUID id = UUID.fromString(userId);
+	return ResponseEntity.ok(userService.countUsers(id, role));
   }
 
   // FIX 4: The refresh endpoint was completely missing.
@@ -111,15 +140,43 @@ public class AuthController {
 	return ResponseEntity.ok().build();
   }
 
+  @GetMapping("/users")
+  public ResponseEntity <List <UserResponse>> getUsers(
+		  @RequestHeader("X-User-Id") String userId,
+		  @RequestHeader("X-User-Role") String role) {
+
+	UUID id = UUID.fromString(userId);
+	return ResponseEntity.ok(userService.listUsers(id, role));
+  }
+
+
+  @GetMapping("/mysessions")
+  public ResponseEntity <List <SessionResponse>> getSessions(
+		  @RequestHeader("X-User-Id") String userId,
+		  @RequestHeader("X-User-Role") String role) {
+
+	UUID id = UUID.fromString(userId);
+	return ResponseEntity.ok(sessionService.getUserSessions(id, role));
+  }
+
+  @GetMapping("/sessions/{userId}")
+  public ResponseEntity <List <SessionResponse>> getUserSessions(
+		  @PathVariable String userId,
+		  @RequestHeader("X-User-Role") String role) {
+
+	UUID id = UUID.fromString(userId);
+	return ResponseEntity.ok(sessionService.adminGetUserSessions(id, role));
+  }
+
   // ── helpers ────────────────────────────────────────────────────────────────
 
   private ResponseCookie buildRefreshCookie(String value, Duration maxAge) {
 	return ResponseCookie.from(REFRESH_COOKIE_NAME, value)
 						 .httpOnly(true)
-						 .secure(cookieSecure)       // FIX 1
-						 .path(REFRESH_COOKIE_PATH)  // FIX 2
+						 .secure(cookieSecure)
+						 .path(REFRESH_COOKIE_PATH)
 						 .maxAge(maxAge)
-						 .sameSite("Lax")         // FIX 3
+						 .sameSite("Lax")
 						 .build();
   }
 

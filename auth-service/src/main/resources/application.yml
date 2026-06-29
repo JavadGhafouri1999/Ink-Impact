@@ -18,8 +18,11 @@ spring  :
       ddl-auto : update
 
 app     :
-  cookie :
+  cookie  :
     secure : false
+  storage :
+    auth-images-dir : /app/uploads/users
+    max-file-size   : 5242880  # 5MB
 
 server  :
   port : 4005

@@ -26,9 +26,7 @@ public class FileStorageService {
   private long maxFileSize;
 
   private static final String[] ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif"};
-  private static final String[] ALLOWED_MIME_TYPES = {
-		  "image/jpeg", "image/png", "image/webp", "image/gif"
-  };
+  private static final String[] ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"};
 
   public String uploadFile(MultipartFile file, String subdirectory) {
 	validateFile(file);
