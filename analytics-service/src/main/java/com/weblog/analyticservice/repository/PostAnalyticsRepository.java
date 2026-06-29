@@ -1,5 +1,6 @@
 package com.weblog.analyticservice.repository;
 
+import com.weblog.analyticservice.dto.response.DailyPostCount;
 import com.weblog.analyticservice.model.PostAnalytics;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -108,16 +109,19 @@ public class PostAnalyticsRepository {
 					 );
   }
 
-  public List <Object[]> countPostsPerDay(int days) {
+  public List <DailyPostCount> countPostsPerDay(int days) {
 	return jdbc.query(
 			"""
-			SELECT date(created_at) AS day, COUNT(*)
+			SELECT date(created_at) AS day, COUNT(*) AS count
 			FROM post_analytics
 			GROUP BY day
 			ORDER BY day DESC
 			LIMIT ?
 			""",
-			(rs, n) -> new Object[] {rs.getDate("day").toLocalDate(), rs.getInt("count")},
+			(rs, n) -> new DailyPostCount(
+					rs.getDate("day").toLocalDate(),
+					rs.getLong("count")
+			),
 			days
 					 );
   }

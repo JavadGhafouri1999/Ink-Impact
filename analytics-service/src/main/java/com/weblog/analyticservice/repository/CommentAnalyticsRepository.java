@@ -1,5 +1,6 @@
 package com.weblog.analyticservice.repository;
 
+import com.weblog.analyticservice.dto.response.DailyCommentCount;
 import com.weblog.analyticservice.model.CommentAnalytics;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -103,16 +104,19 @@ public class CommentAnalyticsRepository {
 					 );
   }
 
-  public List <Object[]> countCommentsPerDay(int days) {
+  public List <DailyCommentCount> countCommentsPerDay(int days) {
 	return jdbc.query(
 			"""
-			SELECT date(created_at) AS day, COUNT(*)
+			SELECT date(created_at) AS day, COUNT(*) AS count
 			FROM comment_analytics
 			GROUP BY day
 			ORDER BY day DESC
 			LIMIT ?
 			""",
-			(rs, n) -> new Object[] {rs.getDate("day").toLocalDate(), rs.getInt("count")},
+			(rs, n) -> new DailyCommentCount(
+					rs.getDate("day").toLocalDate(),
+					rs.getLong("count")
+			),
 			days
 					 );
   }
