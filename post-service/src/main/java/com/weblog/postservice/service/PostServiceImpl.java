@@ -78,9 +78,7 @@ public class PostServiceImpl implements PostService {
 	}
 
 	if(images != null && images.size() > 20) {
-	  throw new FileStorageException(
-			  "Maximum 20 images allowed"
-	  );
+	  throw new FileStorageException("Maximum 20 images allowed");
 	}
 
 	try {

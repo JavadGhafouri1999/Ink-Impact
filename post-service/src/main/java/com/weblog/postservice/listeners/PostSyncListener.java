@@ -1,12 +1,12 @@
 package com.weblog.postservice.listeners;
 
+import com.weblog.postservice.dto.mapper.PostSearchDocumentMapper;
 import com.weblog.postservice.event.PostCreatedEvent;
 import com.weblog.postservice.event.PostDeletedEvent;
 import com.weblog.postservice.event.PostUpdatedEvent;
 import com.weblog.postservice.event.PostViewedEvent;
 import com.weblog.postservice.kafka.KafkaProducer;
 import com.weblog.postservice.model.Post;
-import com.weblog.postservice.model.PostSearchDocument;
 import com.weblog.postservice.repository.PostSearchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,8 +20,9 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Slf4j
 public class PostSyncListener {
 
-  private final PostSearchRepository searchRepo;
-  private final KafkaProducer        kafkaProducer;
+  private final PostSearchRepository     searchRepo;
+  private final KafkaProducer            kafkaProducer;
+  private final PostSearchDocumentMapper mapper;
 
   @Async("postTaskExecutor")
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -63,13 +64,11 @@ public class PostSyncListener {
 
   /**
    * Handles PostViewedEvent: when a unique user views a post.
-   *
    * Publishes the view event to Kafka for analytics service.
    * Analytics service will:
    * - Deduplicate views across distributed systems
    * - Track user behavior patterns
    * - Generate popularity metrics
-   *
    * ViewCount in the Post entity is incremented directly in PostServiceImpl.trackUniqueView()
    * to avoid waiting for this async operation.
    *
@@ -86,12 +85,7 @@ public class PostSyncListener {
 	  log.debug("Published view event for post {} by user {} to Kafka", event.postId(), event.userId());
 
 	} catch(Exception e) {
-	  log.error(
-			  "Failed publishing view event for post {} by user {}",
-			  event.postId(),
-			  event.userId(),
-			  e
-			   );
+	  log.error("Failed publishing view event for post {} by user {}", event.postId(), event.userId(), e);
 	}
   }
 
@@ -102,26 +96,8 @@ public class PostSyncListener {
    */
   private void syncElastic(Post post) {
 	try {
-	  PostSearchDocument doc = new PostSearchDocument();
 
-	  doc.setId(post.getId().toString());
-	  doc.setTitle(post.getTitle());
-	  doc.setSlug(post.getSlug());
-
-	  doc.setContent(post.getContent());
-	  doc.setTags(post.getTags());
-
-	  doc.setAuthorId(post.getAuthorId().toString());
-	  doc.setCreatedAt(post.getCreatedAt().toString());
-	  doc.setStatus(post.getStatus().name());
-
-	  doc.setBannerImageUrl(post.getBannerImageUrl());
-	  doc.setImages(post.getImages());
-
-	  // ── Include viewCount in Elasticsearch sync ──
-	  doc.setViewCount(post.getViewCount());
-
-	  searchRepo.save(doc);
+	  searchRepo.save(mapper.toDocument(post));
 
 	  log.info("Indexed post {} in Elasticsearch with viewCount {}", post.getId(), post.getViewCount());
 

@@ -9,10 +9,14 @@ spring    :
   
   # Main Database
   jpa           :
-    defer-datasource-initialization : true
-    hibernate                       :
-      ddl-auto : update
-    open-in-view                    : false
+    hibernate    :
+      ddl-auto : validate
+    open-in-view : false
+  
+  flyway        :
+    enabled             : true
+    baseline-on-migrate : true
+    validate-on-migrate : true
   
   datasource    :
     url               : ${SPRING_DATASOURCE_URL}

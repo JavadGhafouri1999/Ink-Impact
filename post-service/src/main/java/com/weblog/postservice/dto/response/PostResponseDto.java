@@ -16,6 +16,7 @@ public record PostResponseDto(
 		List <String> images,
 		String bannerImageUrl,
 		String status,
+		Boolean premium,
 		UUID authorId,
 		Long viewCount,
 		LocalDateTime createdAt,

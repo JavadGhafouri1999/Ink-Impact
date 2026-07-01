@@ -56,7 +56,10 @@ public class PostSearchDocument {
   private String createdAt;
 
   @Field(type = FieldType.Keyword)
-  private String status;  // DRAFT, PUBLISHED
+  private String status;
+
+  @Field(type = FieldType.Keyword)
+  private Boolean isPremium;
 
   @Field(type = FieldType.Long)
   private Long viewCount;  // For aggregations later

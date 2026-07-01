@@ -78,12 +78,19 @@ public class GlobalExceptionHandler {
 	return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(buildResponse(500, ex.getMessage()));
   }
 
+  @ExceptionHandler(InvalidUserIdException.class)
+  public ResponseEntity <Map <String, Object>> handleInvalidUserId(InvalidUserIdException ex) {
+	log.warn("Invalid user ID: {}", ex.getMessage());
+	return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						 .body(buildResponse(400, ex.getMessage()));
+  }
+
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity <Map <String, Object>> handleGeneral(Exception ex) {
 	log.error("Unexpected error: {}", ex.getMessage(), ex);
 
 	return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-						 .body(buildResponse(500, ex.getMessage()));
+						 .body(buildResponse(500, "An unexpected error occurred"));
   }
 }

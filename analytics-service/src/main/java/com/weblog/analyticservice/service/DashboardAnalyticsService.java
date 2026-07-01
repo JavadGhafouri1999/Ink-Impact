@@ -3,6 +3,8 @@ package com.weblog.analyticservice.service;
 import com.weblog.analyticservice.dto.mapper.CommentMapper;
 import com.weblog.analyticservice.dto.mapper.PostMapper;
 import com.weblog.analyticservice.dto.response.CommentAnalyticsDto;
+import com.weblog.analyticservice.dto.response.DailyCommentCount;
+import com.weblog.analyticservice.dto.response.DailyPostCount;
 import com.weblog.analyticservice.dto.response.PostAnalyticsDto;
 import com.weblog.analyticservice.repository.CommentAnalyticsRepository;
 import com.weblog.analyticservice.repository.PostAnalyticsRepository;
@@ -44,11 +46,11 @@ public class DashboardAnalyticsService {
 	return CommentMapper.toDtoList(commentRepo.findBetween(start, end));
   }
 
-  public List <Object[]> postsPerDay(int days) {
+  public List <DailyPostCount> postsPerDay(int days) {
 	return postRepo.countPostsPerDay(days);
   }
 
-  public List <Object[]> commentsPerDay(int days) {
+  public List <DailyCommentCount> commentsPerDay(int days) {
 	return commentRepo.countCommentsPerDay(days);
   }
 }

@@ -35,9 +35,14 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
   private static final List <String> PROTECTED_GET_OVERRIDES =
 		  List.of("/api/posts/admin");
 
+  // TODO: Remove the auth/count and auth/users(listing them)
   private static final List <String> PUBLIC_POST_PATHS =
 		  List.of("/api/auth/login",
 				  "/api/auth/register",
+				  "/api/auth/count",
+				  "/api/auth/users",
+				  "/api/auth/mysessions",
+				  "/api/auth/sessions/**",
 				  "/api/auth/refresh");
 
   // TODO: CHANGE THE ADMIN AND ANALYTICS ROUTE TO SECURE

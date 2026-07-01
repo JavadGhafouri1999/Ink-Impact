@@ -64,8 +64,7 @@ public class PostController {
   public ResponseEntity <PostResponseDto> getById
 		  (@PathVariable UUID id,
 		   @RequestHeader(value = "X-User-Id", required = false) String userId,
-		   @RequestHeader(value = "X-User-Role", required = false) String role
-		  ) {
+		   @RequestHeader(value = "X-User-Role", required = false) String role) {
 
 	// ── Convert userId string to UUID, pass null if not authenticated ──
 	UUID userIdUuid = userId != null ? UUID.fromString(userId) : null;
@@ -79,8 +78,7 @@ public class PostController {
   public ResponseEntity <PostResponseDto> getBySlug
 		  (@PathVariable String slug,
 		   @RequestHeader(value = "X-User-Id", required = false) String userId,
-		   @RequestHeader(value = "X-User-Role", required = false) String role
-		  ) {
+		   @RequestHeader(value = "X-User-Role", required = false) String role) {
 
 	UUID userIdUuid = userId != null ? UUID.fromString(userId) : null;
 	return ResponseEntity.ok(postService.getBySlug(slug, userIdUuid, role));
@@ -101,15 +99,13 @@ public class PostController {
 	UUID requesterId =
 			userId != null ? UUID.fromString(userId) : null;
 
-	return ResponseEntity.ok(
-			postService.getByAuthorId(
-					authorId,
-					requesterId,
-					page,
-					size,
-					sortBy,
-					role)
-							);
+	return ResponseEntity.ok(postService.getByAuthorId(
+			authorId,
+			requesterId,
+			page,
+			size,
+			sortBy,
+			role));
   }
 
   @GetMapping("/tag/{tag}")
@@ -137,13 +133,11 @@ public class PostController {
 		  @RequestPart(value = "bannerImage", required = false) MultipartFile bannerImage,
 		  @RequestPart(value = "images", required = false) List <MultipartFile> images,
 		  @RequestHeader("X-User-Id") String userId,
-		  @RequestHeader("X-User-Role") String role
-												) {
+		  @RequestHeader("X-User-Role") String role) {
 
 	UUID authorId = UUID.fromString(userId);
 	return ResponseEntity.ok(
-			postService.create(postDto, bannerImage, images, authorId, role)
-							);
+			postService.create(postDto, bannerImage, images, authorId, role));
   }
 
   @PatchMapping("/{id}")

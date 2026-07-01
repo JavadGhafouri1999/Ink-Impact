@@ -14,6 +14,7 @@ public record PostSummaryResponse(
 		List <String> tags,
 		String bannerImageUrl,
 		UUID authorId,
+		Boolean premium,
 		@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 		LocalDateTime createdAt,
 		Long viewCount  // ← All-time unique user view count for sorting/filtering in list views

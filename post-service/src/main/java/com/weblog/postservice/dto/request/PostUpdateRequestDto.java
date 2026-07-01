@@ -22,5 +22,7 @@ public record PostUpdateRequestDto(
 		@Size(max = 20, message = "Maximum 20 images allowed")
 		List <@NotBlank String> images,
 
+		Boolean isPremium,
+
 		Post.PostStatus status
 ) { }

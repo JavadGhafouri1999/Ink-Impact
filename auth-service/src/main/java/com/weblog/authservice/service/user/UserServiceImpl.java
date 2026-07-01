@@ -6,7 +6,7 @@ import com.weblog.authservice.dto.request.RegisterRequest;
 import com.weblog.authservice.dto.request.UpdateProfileRequest;
 import com.weblog.authservice.dto.response.AuthResponse;
 import com.weblog.authservice.dto.response.UserResponse;
-import com.weblog.authservice.exception.BadRequestException;
+import com.weblog.authservice.exception.ConflictException;
 import com.weblog.authservice.exception.UnauthorizedException;
 import com.weblog.authservice.exception.UserNotFoundException;
 import com.weblog.authservice.model.Session;
@@ -46,11 +46,15 @@ public class UserServiceImpl implements UserService {
 	List <User> conflicts = userRepo.findConflicts(email, username, phone);
 
 	for(User u : conflicts) {
-	  if(u.getEmail().equals(email)) { throw new BadRequestException("Email already taken"); }
-
-	  if(u.getUsername().equals(username)) { throw new BadRequestException("Username already taken"); }
-
-	  if(u.getPhone().equals(phone)) { throw new BadRequestException("Phone already taken"); }
+	  if(u.getEmail().equals(email)) {
+		throw new ConflictException("Email already taken");
+	  }
+	  if(u.getUsername().equals(username)) {
+		throw new ConflictException("Username already taken");
+	  }
+	  if(u.getPhone().equals(phone)) {
+		throw new ConflictException("Phone already taken");
+	  }
 	}
 
 	String encodedPassword = passwordEncoder.encode(request.password());
@@ -114,6 +118,7 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
+  @Transactional
   public UserResponse updateProfile(UUID userId, UpdateProfileRequest request, MultipartFile avatar) {
 
 	User user = userRepo.findById(userId)
@@ -146,6 +151,32 @@ public class UserServiceImpl implements UserService {
 	User saved = userRepo.save(user);
 
 	return UserMapper.toDto(saved);
+  }
+
+  @Override
+  @Transactional
+  public void updateRole(UUID adminId, String adminRole, UUID targetUserId, User.Role newRole) {
+	// Only OWNER can update roles
+	if(!"OWNER".equals(adminRole)) {
+	  throw new UnauthorizedException("Only OWNER can update user roles");
+	}
+
+	// Prevent owner from demoting themselves
+	if(adminId.equals(targetUserId) && !newRole.equals(User.Role.OWNER)) {
+	  throw new IllegalArgumentException("Cannot change your own role");
+	}
+
+	User targetUser = userRepo.findById(targetUserId)
+							  .orElseThrow(() -> new UserNotFoundException(
+									  "User not found with id: " + targetUserId));
+
+	// Prevent setting OWNER role if not already owner (optional security)
+	if(newRole.equals(User.Role.OWNER) && !targetUser.getRole().equals(User.Role.OWNER)) {
+	  throw new UnauthorizedException("Only existing OWNER can assign OWNER role");
+	}
+
+	targetUser.setRole(newRole);
+	userRepo.save(targetUser);
   }
 
   @Override

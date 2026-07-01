@@ -14,18 +14,11 @@ import java.util.UUID;
 
 public interface PostRepository extends JpaRepository <Post, UUID> {
 
-  Optional <Post> findBySlugAndStatus(
-		  String slug,
-		  Post.PostStatus status);
+  Optional <Post> findBySlugAndStatus(String slug, Post.PostStatus status);
 
-  Optional <Post> findByIdAndStatus(
-		  UUID id,
-		  Post.PostStatus status);
+  Optional <Post> findByIdAndStatus(UUID id, Post.PostStatus status);
 
-  Page <Post> findByAuthorIdAndStatus(
-		  UUID authorId,
-		  Post.PostStatus status,
-		  Pageable pageable);
+  Page <Post> findByAuthorIdAndStatus(UUID authorId, Post.PostStatus status, Pageable pageable);
 
   boolean existsByTitle(String title);
 
@@ -45,9 +38,7 @@ public interface PostRepository extends JpaRepository <Post, UUID> {
 		 WHERE t = :tag
 		 AND p.status = com.weblog.postservice.model.Post.PostStatus.PUBLISHED
 		 """)
-  Page <Post> findPublishedByTag(
-		  @Param("tag") String tag,
-		  Pageable pageable);
+  Page <Post> findPublishedByTag(@Param("tag") String tag, Pageable pageable);
 
   /**
    * Efficiently increments viewCount for a post by 1.

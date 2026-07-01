@@ -2,10 +2,12 @@ package com.weblog.authservice.controller;
 
 import com.weblog.authservice.dto.request.LoginRequest;
 import com.weblog.authservice.dto.request.RegisterRequest;
+import com.weblog.authservice.dto.request.RoleUpdateRequest;
 import com.weblog.authservice.dto.request.UpdateProfileRequest;
 import com.weblog.authservice.dto.response.AuthResponse;
 import com.weblog.authservice.dto.response.SessionResponse;
 import com.weblog.authservice.dto.response.UserResponse;
+import com.weblog.authservice.exception.InvalidUserIdException;
 import com.weblog.authservice.service.session.SessionService;
 import com.weblog.authservice.service.user.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -75,16 +77,29 @@ public class AuthController {
 	));
   }
 
-  @PutMapping(value = "/profile",
-			  consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public UserResponse updateProfile(
+  @PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity <UserResponse> updateProfile(
 		  @RequestHeader("X-User-Id") String userId,
 		  @RequestHeader("X-User-Role") String role,
 		  @Valid @RequestPart("data") UpdateProfileRequest request,
 		  @RequestPart(value = "avatar", required = false) MultipartFile avatar
-								   ) {
-	UUID id = UUID.fromString(userId);
-	return userService.updateProfile(id, request, avatar);
+													) {
+	UUID id = convertUserId(userId);
+	return ResponseEntity.ok(userService.updateProfile(id, request, avatar));
+  }
+
+  @PutMapping("/role")
+  public ResponseEntity <Void> updateRole(
+		  @RequestHeader("X-User-Id") String adminUserId,
+		  @RequestHeader("X-User-Role") String adminRole,
+		  @RequestParam("userId") String targetUserId,
+		  @Valid @RequestBody RoleUpdateRequest request) {
+
+	UUID adminId = UUID.fromString(adminUserId);
+	UUID targetId = UUID.fromString(targetUserId);
+
+	userService.updateRole(adminId, adminRole, targetId, request.role());
+	return ResponseEntity.ok().build();
   }
 
   @GetMapping(value = "/count")
@@ -92,7 +107,7 @@ public class AuthController {
 		  @RequestHeader("X-User-Id") String userId,
 		  @RequestHeader("X-User-Role") String role
 										 ) {
-	UUID id = UUID.fromString(userId);
+	UUID id = convertUserId(userId);
 	return ResponseEntity.ok(userService.countUsers(id, role));
   }
 
@@ -145,7 +160,7 @@ public class AuthController {
 		  @RequestHeader("X-User-Id") String userId,
 		  @RequestHeader("X-User-Role") String role) {
 
-	UUID id = UUID.fromString(userId);
+	UUID id = convertUserId(userId);
 	return ResponseEntity.ok(userService.listUsers(id, role));
   }
 
@@ -155,7 +170,7 @@ public class AuthController {
 		  @RequestHeader("X-User-Id") String userId,
 		  @RequestHeader("X-User-Role") String role) {
 
-	UUID id = UUID.fromString(userId);
+	UUID id = convertUserId(userId);
 	return ResponseEntity.ok(sessionService.getUserSessions(id, role));
   }
 
@@ -164,7 +179,7 @@ public class AuthController {
 		  @PathVariable String userId,
 		  @RequestHeader("X-User-Role") String role) {
 
-	UUID id = UUID.fromString(userId);
+	UUID id = convertUserId(userId);
 	return ResponseEntity.ok(sessionService.adminGetUserSessions(id, role));
   }
 
@@ -184,5 +199,13 @@ public class AuthController {
 	// Dedicated method so it's obvious this cookie is meant to evict,
 	// not to set a new value. maxAge(0) tells the browser to delete it.
 	return buildRefreshCookie("", Duration.ZERO);
+  }
+
+  private UUID convertUserId(String userId) {
+	try {
+	  return UUID.fromString(userId);
+	} catch(IllegalArgumentException e) {
+	  throw new InvalidUserIdException("Invalid user ID format: " + userId);
+	}
   }
 }

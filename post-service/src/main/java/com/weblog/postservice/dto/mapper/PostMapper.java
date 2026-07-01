@@ -29,6 +29,7 @@ public final class PostMapper {
 			: List.copyOf(post.getImages()),
 			post.getBannerImageUrl(),
 			String.valueOf(post.getStatus()),
+			post.isPremium(),
 			post.getAuthorId(),
 			post.getViewCount(),
 			post.getCreatedAt(),
@@ -49,6 +50,7 @@ public final class PostMapper {
 			post.getTags(),
 			post.getBannerImageUrl(),
 			post.getAuthorId(),
+			post.isPremium(),
 			post.getCreatedAt(),
 			post.getViewCount()
 	);
@@ -87,6 +89,8 @@ public final class PostMapper {
 			: List.of()
 				  );
 
+	post.setPremium(request.isPremium());
+
 	post.setStatus(Post.PostStatus.DRAFT);
 
 	return post;
@@ -105,6 +109,7 @@ public final class PostMapper {
 			doc.getTags(),
 			doc.getBannerImageUrl(),
 			UUID.fromString(doc.getAuthorId()),
+			doc.getIsPremium(),
 			LocalDateTime.parse(doc.getCreatedAt()),
 			doc.getViewCount()
 	);

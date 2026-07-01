@@ -1,0 +1,79 @@
+# Server Configs
+spring    :
+  application :
+    name : comment-service
+  main        :
+    banner-mode : off
+  output      :
+    ansi :
+      enabled : always
+  
+  # Main Database
+  datasource  :
+    url               : ${SPRING_DATASOURCE_URL}
+    username          : ${POSTGRES_USER}
+    password          : ${POSTGRES_PASSWORD}
+    driver-class-name : org.postgresql.Driver
+  
+  # Hibernate
+  jpa         :
+    hibernate                       :
+      ddl-auto : update
+    open-in-view                    : false
+    defer-datasource-initialization : true
+  
+  # Redis - Cache
+  cache       :
+    type  : redis
+    redis :
+      time-to-live : PT10M
+  data        :
+    redis :
+      host : redis
+      port : 6379
+  
+  # Kafka Producer
+  kafka       :
+    producer :
+      key-serializer   : org.apache.kafka.common.serialization.StringSerializer
+      value-serializer : org.apache.kafka.common.serialization.ByteArraySerializer
+
+# Server
+server    :
+  port : 4001
+
+# Logging
+logging   :
+  pattern :
+    console : "%d{HH:mm:ss} [%X{requestId}] %-5level %logger{0} - %msg%n"
+  level   :
+    com.weblog.commentservice : DEBUG
+    org.springframework.web   : INFO
+    org.hibernate             : WARN
+
+# Swagger
+springdoc :
+  api-docs   :
+    path : /api-docs
+  swagger-ui :
+    path : /swagger-ui.html
+
+# Test database (commented out)
+# spring:
+#   h2:
+#     console:
+#       enabled: true
+#       path: /h2-console
+#   datasource:
+#     url: jdbc:h2:mem:testdb
+#     driver-class-name: org.h2.Driver
+#     username: admin
+#     password: admin
+#   jpa:
+#     hibernate:
+#       ddl-auto: create
+#     defer-datasource-initialization: true
+#     database-platform: org.hibernate.dialect.H2Dialect
+#   sql:
+#     init:
+#       mode: always

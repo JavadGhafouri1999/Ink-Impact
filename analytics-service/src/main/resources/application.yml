@@ -1,0 +1,44 @@
+# Server Configs
+spring  :
+  application :
+    name : analytics-service
+  main        :
+    banner-mode : off
+  output      :
+    ansi :
+      enabled : always
+  
+  # Main Database
+  datasource  :
+    url               : ${SPRING_DATASOURCE_URL}
+    username          : ${POSTGRES_USER}
+    password          : ${POSTGRES_PASSWORD}
+    driver-class-name : org.postgresql.Driver
+  
+  # Hibernate - Validate schema against Flyway migrations
+  jpa         :
+    hibernate    :
+      ddl-auto : update
+    open-in-view : false
+  
+  # Kafka Consumer
+  kafka       :
+    consumer          :
+      group-id           : analytics-service
+      key-deserializer   : org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer : org.apache.kafka.common.serialization.ByteArrayDeserializer
+      auto-offset-reset  : earliest
+    bootstrap-servers : ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+
+# Server
+server  :
+  port : 4002
+
+# Logging
+logging :
+  pattern :
+    console : "%d{HH:mm:ss} [%X{requestId}] %-5level %logger{0} - %msg%n"
+  level   :
+    com.weblog.analyticservice : DEBUG
+    org.springframework.web    : INFO
+    org.hibernate              : WARN

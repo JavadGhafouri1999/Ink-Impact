@@ -15,10 +15,8 @@ public record PostCreateRequestDto(
 		@Size(min = 10, max = 50000)
 		String content,
 
+		Boolean isPremium,
+
 		@Size(max = 10)
-		List <
-				@NotBlank
-				@Size(min = 2, max = 30)
-						String
-				> tags
+		List <@NotBlank @Size(min = 2, max = 30) String> tags
 ) { }

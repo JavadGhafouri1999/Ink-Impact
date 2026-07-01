@@ -45,6 +45,9 @@ public class Post {
   @Enumerated(EnumType.STRING)
   private PostStatus status = PostStatus.DRAFT;
 
+  @Column(name = "is_premium", nullable = false)
+  private boolean premium = false;
+
   // ── BANNER IMAGE (1:1 OR HERO IMAGE) ──
   private String bannerImageUrl;
 
@@ -70,7 +73,7 @@ public class Post {
   private LocalDateTime updatedAt;
 
   public Post(UUID authorId, String bannerImageUrl, String content, List <String> images, String slug,
-			  PostStatus status, List <String> tags, String title) {
+			  PostStatus status, List <String> tags, String title, boolean premium) {
 	this.authorId = authorId;
 	this.bannerImageUrl = bannerImageUrl;
 	this.content = content;
@@ -80,6 +83,7 @@ public class Post {
 	this.tags = tags;
 	this.title = title;
 	this.viewCount = 0L;
+	this.premium = premium;
   }
 
   public enum PostStatus {

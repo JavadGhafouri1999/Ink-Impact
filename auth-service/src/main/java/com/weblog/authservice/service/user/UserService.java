@@ -5,6 +5,7 @@ import com.weblog.authservice.dto.request.RegisterRequest;
 import com.weblog.authservice.dto.request.UpdateProfileRequest;
 import com.weblog.authservice.dto.response.AuthResponse;
 import com.weblog.authservice.dto.response.UserResponse;
+import com.weblog.authservice.model.User;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,4 +27,6 @@ public interface UserService {
   long countUsers(UUID userId, String role);
 
   List <UserResponse> listUsers(UUID userId, String role);
+
+  void updateRole(UUID adminId, String adminRole, UUID targetUserId, User.Role newRole);
 }
