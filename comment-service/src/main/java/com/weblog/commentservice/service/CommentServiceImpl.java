@@ -129,6 +129,11 @@ public class CommentServiceImpl implements CommentService {
   }
 
   @Override
+  public long countCommentsByUserId(UUID userId) {
+	return commentRepo.countByUserId(userId);
+  }
+
+  @Override
   @Transactional(readOnly = true)
   public List <CommentResponseDto> findAll() {
 	List <Comment> comments = commentRepo.findAll();

@@ -24,6 +24,8 @@ public interface PostRepository extends JpaRepository <Post, UUID> {
 
   Page <Post> findByAuthorId(UUID authorId, Pageable pageable);
 
+  long countByAuthorId(UUID authorId);
+
   boolean existsById(UUID postId);
 
   // For pagination - only published posts

@@ -23,4 +23,6 @@ public interface CommentService {
   CommentResponseDto create(UUID user, String role, CommentRequestDto request);
 
   CommentResponseDto update(UUID commentId, String role, CommentUpdateDto request);
+
+  long countCommentsByUserId(UUID userId);
 }

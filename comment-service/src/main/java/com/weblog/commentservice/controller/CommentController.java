@@ -5,6 +5,7 @@ import com.weblog.commentservice.dto.request.CommentUpdateDto;
 import com.weblog.commentservice.dto.response.CommentResponseDto;
 import com.weblog.commentservice.dto.response.PagedResponse;
 import com.weblog.commentservice.service.CommentService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,7 @@ public class CommentController {
   private final CommentService commentService;
 
   @PostMapping
-  public ResponseEntity <CommentResponseDto> create(
+  public ResponseEntity<CommentResponseDto> create(
 		  @Valid @RequestBody CommentRequestDto request,
 		  @RequestHeader("X-User-Id") String userId,
 		  @RequestHeader("X-User-Role") String role) {
@@ -32,7 +33,7 @@ public class CommentController {
   }
 
   @PatchMapping("/{id}")
-  public ResponseEntity <CommentResponseDto> update(
+  public ResponseEntity<CommentResponseDto> update(
 		  @PathVariable UUID id,
 		  @Valid @RequestBody CommentUpdateDto request,
 		  @RequestHeader("X-User-Id") String userId,
@@ -42,17 +43,17 @@ public class CommentController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity <CommentResponseDto> getById(@PathVariable UUID id) {
+  public ResponseEntity<CommentResponseDto> getById(@PathVariable UUID id) {
 	return ResponseEntity.ok(commentService.findById(id));
   }
 
   @GetMapping
-  public ResponseEntity <List <CommentResponseDto>> getAll() {
+  public ResponseEntity<List<CommentResponseDto>> getAll() {
 	return ResponseEntity.ok(commentService.findAll());
   }
 
   @GetMapping("/postcomment/{postId}")
-  public ResponseEntity <PagedResponse <CommentResponseDto>> getByPostId(
+  public ResponseEntity<PagedResponse<CommentResponseDto>> getByPostId(
 		  @PathVariable UUID postId,
 		  @RequestParam(defaultValue = "0") int page,
 		  @RequestParam(defaultValue = "10") int size) {
@@ -61,16 +62,24 @@ public class CommentController {
   }
 
   @DeleteMapping("/postcomment/{postId}")
-  public ResponseEntity <String> deleteByPostId(
+  public ResponseEntity<String> deleteByPostId(
 		  @PathVariable UUID postId, @RequestHeader("X-User-Role") String role) {
 	commentService.deleteByPostId(postId, role);
 	return ResponseEntity.ok("Comments for post Deleted - Post-Id: " + postId);
   }
 
   @DeleteMapping("/usercomment/{targetUserId}")
-  public ResponseEntity <String> deleteByUserId(
+  public ResponseEntity<String> deleteByUserId(
 		  @PathVariable UUID targetUserId, @RequestHeader("X-User-Role") String role) {
 	commentService.deleteByUserId(targetUserId, role);
 	return ResponseEntity.ok("Comments for user Deleted - User-Id: " + targetUserId);
+  }
+
+
+  @GetMapping("/{userId}/count")
+  @Operation(summary = "Total posts by author")
+  public ResponseEntity<Long> commentsCountByUserId(
+		  @PathVariable UUID userId) {
+	return ResponseEntity.ok(commentService.countCommentsByUserId(userId));
   }
 }

@@ -274,6 +274,12 @@ public class PostServiceImpl implements PostService {
   }
 
   @Override
+  @Transactional(readOnly = true)
+  public long postsCountByAuthor(UUID userId) {
+	return postRepo.countByAuthorId(userId);
+  }
+
+  @Override
   @Transactional
   @Caching(evict = {
 		  @CacheEvict(value = "postsById", key = "#id"),

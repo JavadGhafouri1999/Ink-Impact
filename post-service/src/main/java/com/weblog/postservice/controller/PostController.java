@@ -30,7 +30,7 @@ public class PostController {
   @Operation(
 		  summary = "Get all posts - Admins",
 		  description = "list of all posts with optional sorting - even not published ones")
-  public ResponseEntity <PagedResponse <PostSummaryResponse>> getAllPosts(
+  public ResponseEntity<PagedResponse<PostSummaryResponse>> getAllPosts(
 		  @RequestParam(defaultValue = "0") int page,
 		  @RequestParam(defaultValue = "10") int size,
 		  @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -42,7 +42,7 @@ public class PostController {
   @Operation(
 		  summary = "Get published posts",
 		  description = "Retrieve a paginated list of published posts with optional sorting")
-  public ResponseEntity <PagedResponse <PostSummaryResponse>> getPublishedPosts(
+  public ResponseEntity<PagedResponse<PostSummaryResponse>> getPublishedPosts(
 		  @RequestParam(defaultValue = "0") int page,
 		  @RequestParam(defaultValue = "10") int size,
 		  @RequestParam(defaultValue = "createdAt") String sortBy) {
@@ -50,7 +50,7 @@ public class PostController {
   }
 
   @GetMapping("/search")
-  public PagedResponse <PostSummaryResponse> search(
+  public PagedResponse<PostSummaryResponse> search(
 		  @RequestParam String q,
 		  @RequestParam(defaultValue = "0") int page,
 		  @RequestParam(defaultValue = "10") int size) {
@@ -61,13 +61,15 @@ public class PostController {
   @Operation(
 		  summary = "Get post by ID",
 		  description = "Retrieve a specific post by its unique identifier (UUID)")
-  public ResponseEntity <PostResponseDto> getById
+  public ResponseEntity<PostResponseDto> getById
 		  (@PathVariable UUID id,
 		   @RequestHeader(value = "X-User-Id", required = false) String userId,
 		   @RequestHeader(value = "X-User-Role", required = false) String role) {
 
 	// ── Convert userId string to UUID, pass null if not authenticated ──
-	UUID userIdUuid = userId != null ? UUID.fromString(userId) : null;
+	UUID userIdUuid = userId != null
+	                  ? UUID.fromString(userId)
+	                  : null;
 	return ResponseEntity.ok(postService.getById(id, userIdUuid, role));
   }
 
@@ -75,12 +77,14 @@ public class PostController {
   @Operation(
 		  summary = "Get post by slug",
 		  description = "Retrieve a specific post by its URL-friendly slug")
-  public ResponseEntity <PostResponseDto> getBySlug
+  public ResponseEntity<PostResponseDto> getBySlug
 		  (@PathVariable String slug,
 		   @RequestHeader(value = "X-User-Id", required = false) String userId,
 		   @RequestHeader(value = "X-User-Role", required = false) String role) {
 
-	UUID userIdUuid = userId != null ? UUID.fromString(userId) : null;
+	UUID userIdUuid = userId != null
+	                  ? UUID.fromString(userId)
+	                  : null;
 	return ResponseEntity.ok(postService.getBySlug(slug, userIdUuid, role));
   }
 
@@ -88,7 +92,7 @@ public class PostController {
   @Operation(
 		  summary = "Get posts by author",
 		  description = "Retrieve a paginated list of all posts created by a specific author")
-  public ResponseEntity <PagedResponse <PostSummaryResponse>> getByAuthor(
+  public ResponseEntity<PagedResponse<PostSummaryResponse>> getByAuthor(
 		  @PathVariable UUID authorId,
 		  @RequestParam(defaultValue = "0") int page,
 		  @RequestParam(defaultValue = "10") int size,
@@ -97,7 +101,9 @@ public class PostController {
 		  @RequestHeader(value = "X-User-Role", required = false) String role) {
 
 	UUID requesterId =
-			userId != null ? UUID.fromString(userId) : null;
+			userId != null
+			? UUID.fromString(userId)
+			: null;
 
 	return ResponseEntity.ok(postService.getByAuthorId(
 			authorId,
@@ -112,7 +118,7 @@ public class PostController {
   @Operation(
 		  summary = "Get posts by tag",
 		  description = "Retrieve a paginated list of posts filtered by a specific tag")
-  public ResponseEntity <PagedResponse <PostSummaryResponse>> getByTag(
+  public ResponseEntity<PagedResponse<PostSummaryResponse>> getByTag(
 		  @PathVariable String tag,
 		  @RequestParam(defaultValue = "0") int page,
 		  @RequestParam(defaultValue = "10") int size,
@@ -128,10 +134,10 @@ public class PostController {
   @Operation(
 		  summary = "Create a new post",
 		  description = "Create a new post with the provided details")
-  public ResponseEntity <PostResponseDto> create(
+  public ResponseEntity<PostResponseDto> create(
 		  @Valid @RequestPart("post") PostCreateRequestDto postDto,
 		  @RequestPart(value = "bannerImage", required = false) MultipartFile bannerImage,
-		  @RequestPart(value = "images", required = false) List <MultipartFile> images,
+		  @RequestPart(value = "images", required = false) List<MultipartFile> images,
 		  @RequestHeader("X-User-Id") String userId,
 		  @RequestHeader("X-User-Role") String role) {
 
@@ -144,7 +150,7 @@ public class PostController {
   @Operation(
 		  summary = "Update an existing post",
 		  description = "Update a specific post by its ID with partial or complete information")
-  public ResponseEntity <PostResponseDto> update(
+  public ResponseEntity<PostResponseDto> update(
 		  @PathVariable UUID id,
 		  @Valid @RequestBody PostUpdateRequestDto postDto,
 		  @RequestHeader("X-User-Id") String userId,
@@ -155,12 +161,19 @@ public class PostController {
 
   @DeleteMapping("/{id}")
   @Operation(summary = "Delete a post", description = "Delete a specific post by its ID")
-  public ResponseEntity <String> delete(
+  public ResponseEntity<String> delete(
 		  @PathVariable UUID id,
 		  @RequestHeader("X-User-Id") String userId,
 		  @RequestHeader("X-User-Role") String role) {
 	UUID authorId = UUID.fromString(userId);
 	postService.deletePost(authorId, id, role);
 	return ResponseEntity.ok().body("Post with ID " + id + " was deleted");
+  }
+
+  @GetMapping("/posts/author/{userId}/count")
+  @Operation(summary = "Total posts by author")
+  public ResponseEntity<Long> postsCountByAuthor(
+		  @PathVariable UUID userId) {
+	return ResponseEntity.ok(postService.postsCountByAuthor(userId));
   }
 }

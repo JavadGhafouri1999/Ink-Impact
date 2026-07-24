@@ -26,8 +26,8 @@ import java.util.Set;
 @Component
 public class GatewayAuthFilter implements GlobalFilter, Ordered {
 
-  private static final Logger        log              =
-		  LoggerFactory.getLogger(GatewayAuthFilter.class);
+  private static final Logger log = LoggerFactory.getLogger(GatewayAuthFilter.class);
+
   // ── Paths ──────────────────────────────────────────────
   private static final List <String> PUBLIC_GET_PATHS =
 		  List.of("/api/posts/**", "/api/comments/**", "/api/admin/**", "/api/analytics/**");
@@ -35,23 +35,23 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
   private static final List <String> PROTECTED_GET_OVERRIDES =
 		  List.of("/api/posts/admin");
 
-  // TODO: Remove the auth/count and auth/users(listing them)
+  // TODO: Remove the auth/count and auth/users(listing them) and /api/media
   private static final List <String> PUBLIC_POST_PATHS =
 		  List.of("/api/auth/login",
 				  "/api/auth/register",
-				  "/api/auth/count",
-				  "/api/auth/users",
-				  "/api/auth/mysessions",
 				  "/api/auth/sessions/**",
 				  "/api/auth/refresh");
 
   // TODO: CHANGE THE ADMIN AND ANALYTICS ROUTE TO SECURE
   private static final Map <String, Set <String>> ROLE_RESTRICTED_PATHS =
 		  Map.of("/api/posts/**", Set.of("AUTHOR", "ADMIN", "OWNER"),
-				 "/api/comments/**", Set.of("USER", "AUTHOR", "ADMIN", "OWNER")
-				  //				 "/api/admin/**", Set.of("ADMIN", "OWNER"),
-				  //				 "/api/analytics/**", Set.of("ADMIN", "OWNER")
-				);
+		         "/api/comments/**", Set.of("USER", "AUTHOR", "ADMIN", "OWNER"),
+		         "/api/auth/mysessions", Set.of("USER", "AUTHOR", "ADMIN", "OWNER", "SPECIAL"),
+		         "/api/admin/**", Set.of("ADMIN", "OWNER"),
+		         "/api/analytics/**", Set.of("ADMIN", "OWNER"),
+		         "/api/auth/users", Set.of("ADMIN", "OWNER"),
+		         "/api/auth/count", Set.of("ADMIN", "OWNER"),
+		         "/api/media/**", Set.of("ADMIN", "OWNER", "AUTHOR"));
 
   private final SecretKey            secretKey;
   private final AntPathMatcher       matcher = new AntPathMatcher();
@@ -187,9 +187,9 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
   private Mono <Void> getVoidMono(ServerWebExchange exchange, GatewayFilterChain chain, Claims claims,
 								  String role) {
 	ServerWebExchange mutated = exchange.mutate().request(r -> r.headers(h -> {
-	  h.add("X-User-Id", claims.getSubject());
-	  h.add("X-User-Username", claims.get("username", String.class));
-	  h.add("X-User-Role", role);
+	  h.set("X-User-Id", claims.getSubject());
+	  h.set("X-User-Username", claims.get("username", String.class));
+	  h.set("X-User-Role", role);
 	})).build();
 
 	return chain.filter(mutated);

@@ -44,4 +44,6 @@ public interface PostService {
   PagedResponse <PostSummaryResponse> search(String q, int page, int size);
 
   PagedResponse <PostSummaryResponse> getByTag(String tag, int page, int size, String role);
+
+  long postsCountByAuthor(UUID userId);
 }
