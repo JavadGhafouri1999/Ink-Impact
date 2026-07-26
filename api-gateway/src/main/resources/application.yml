@@ -1,87 +1,87 @@
-server  :
-  port : 4004
+server:
+  port: 4004
 
-spring  :
+spring:
   
-  data        :
-    redis :
-      host    : redis
-      port    : 6379
-      timeout : 2000ms
-  
-  application :
-    name : api-gateway
-  
-  main        :
-    banner-mode : off
-  
-  cloud       :
-    compatibility-verifier :
-      enabled : false
+  data:
+    redis:
+      host: redis
+      port: 6379
+      timeout: 2000ms
+
+  application:
+    name: api-gateway
+
+  main:
+    banner-mode: off
+
+  cloud:
+    compatibility-verifier:
+      enabled: false
     
-    gateway                :
-      forwarded :
-        enabled : true
-      routes    :
+    gateway:
+      forwarded:
+        enabled: true
+      routes:
         # ===================== AUTH SERVICE =====================
         # 1. LOGIN (IP-based)
-        - id         : auth-login-route
-          uri        : http://auth-service:4005
-          predicates :
+        - id: auth-login-route
+          uri: http://auth-service:4005
+          predicates:
             - Path=/api/auth/login
-          filters    :
-            - name : RequestRateLimiter
-              args :
-                key-resolver                     : "#{@smartKeyResolver}"
-                redis-rate-limiter.replenishRate : 3
-                redis-rate-limiter.burstCapacity : 5
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@smartKeyResolver}"
+                redis-rate-limiter.replenishRate: 3
+                redis-rate-limiter.burstCapacity: 5
             - StripPrefix=0
         
         # 2. OTHER AUTH ENDPOINTS (User-based)
-        - id         : auth-service-route
-          uri        : http://auth-service:4005
-          predicates :
+        - id: auth-service-route
+          uri: http://auth-service:4005
+          predicates:
             - Path=/api/auth/**
-          filters    :
-            - name : RequestRateLimiter
-              args :
-                key-resolver                     : "#{@smartKeyResolver}"
-                redis-rate-limiter.replenishRate : 20
-                redis-rate-limiter.burstCapacity : 40
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@smartKeyResolver}"
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
             - StripPrefix=0
-        
-        - id         : auth-uploads-route
-          uri        : http://auth-service:4005
-          predicates :
+
+        - id: auth-uploads-route
+          uri: http://auth-service:4005
+          predicates:
             - Path=/uploads/auth/**
-          filters    :
+          filters:
             - StripPrefix=0
         
         # ===================== POST SERVICE =====================
-        - id         : post-service-route
-          uri        : http://post-service:4000
-          predicates :
+        - id: post-service-route
+          uri: http://post-service:4000
+          predicates:
             - Path=/api/posts/**
-          filters    :
-            - name : RequestRateLimiter
-              args :
-                key-resolver                     : "#{@smartKeyResolver}"
-                redis-rate-limiter.replenishRate : 10
-                redis-rate-limiter.burstCapacity : 20
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@smartKeyResolver}"
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
             - StripPrefix=0
-        
-        - id         : api-docs-post-route
-          uri        : http://post-service:4000
-          predicates :
+
+        - id: api-docs-post-route
+          uri: http://post-service:4000
+          predicates:
             - Path=/api-docs/posts
-          filters    :
+          filters:
             - StripPrefix=0
-        
-        - id         : post-uploads-route
-          uri        : http://post-service:4000
-          predicates :
+
+        - id: post-uploads-route
+          uri: http://post-service:4000
+          predicates:
             - Path=/uploads/posts/**
-          filters    :
+          filters:
             - StripPrefix=0
 
         - id: post-media-route
@@ -96,46 +96,46 @@ spring  :
                 redis-rate-limiter.burstCapacity: 20
             - StripPrefix=0
         # ===================== COMMENT SERVICE =====================
-        - id         : comment-service-route
-          uri        : http://comment-service:4001
-          predicates :
+        - id: comment-service-route
+          uri: http://comment-service:4001
+          predicates:
             - Path=/api/comments/**
-          filters    :
-            - name : RequestRateLimiter
-              args :
-                key-resolver                     : "#{@smartKeyResolver}"
-                redis-rate-limiter.replenishRate : 10
-                redis-rate-limiter.burstCapacity : 20
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@smartKeyResolver}"
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
             - StripPrefix=0
         
         # ==================== ANALYTICS SERVICE ====================
-        - id         : analytics-service-route
-          uri        : http://analytics-service:4002
-          predicates :
+        - id: analytics-service-route
+          uri: http://analytics-service:4002
+          predicates:
             - Path=/api/admin/analytics/**
-          filters    :
-            - name : RequestRateLimiter
-              args :
-                key-resolver                     : "#{@smartKeyResolver}"
-                redis-rate-limiter.replenishRate : 10
-                redis-rate-limiter.burstCapacity : 20
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@smartKeyResolver}"
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
             - StripPrefix=0
   
   # ========================== Kafka ==========================
-  kafka       :
-    bootstrap-servers : kafka:9092
-    producer          :
-      key-serializer   : org.apache.kafka.common.serialization.StringSerializer
-      value-serializer : org.springframework.kafka.support.serializer.JsonSerializer
-      properties       :
-        spring.json.add.type.headers : false
-    admin             :
-      auto-create : true
+  kafka:
+    bootstrap-servers: kafka:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    admin:
+      auto-create: true
 
-jwt     :
-  secret : ${JWT_SECRET}
+jwt:
+  secret: ${JWT_SECRET}
 
-logging :
-  level :
-    org.springframework.security      : INFO
-    org.springframework.cloud.gateway : DEBUG
+logging:
+  level:
+    org.springframework.security: INFO
+    org.springframework.cloud.gateway: DEBUG

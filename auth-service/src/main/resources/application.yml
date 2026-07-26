@@ -1,45 +1,11 @@
-spring  :
-  application :
-    name : auth-service
-  main        :
-    banner-mode : off
-  output      :
-    ansi :
-      enabled : always
-  datasource  :
-    url               : ${SPRING_DATASOURCE_URL}
-    username          : ${POSTGRES_USER}
-    password          : ${POSTGRES_PASSWORD}
-    driver-class-name : org.postgresql.Driver
-  jpa         :
-    defer-datasource-initialization : true
-    open-in-view                    : false
-    hibernate                       :
-      ddl-auto : update
-
-app     :
-  cookie  :
-    secure : false
-  storage :
-    auth-images-dir : /app/uploads/users
-    max-file-size   : 5242880  # 5MB
-
-server  :
-  port : 4005
-
-jwt     :
-  secret                   : ${JWT_SECRET}
-  access-token-expiration  : 900000     # 15 minutes
-  refresh-token-expiration : 604800000  # 7 days
-
-logging :
-  pattern :
-    console : "%d{HH:mm:ss} [%X{requestId}] %-5level %logger{0} - %msg%n"
-  level   :
-    com :
-      weblog :
-        authservice : DEBUG
-    org :
-      springframework :
-        web : INFO
-      hibernate       : WARN
+spring:
+  application:
+    name: auth-service
+  config:
+    import: "optional:configserver:http://config-server:8888"
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    config:
+      uri: http://config-server:8888
+      fail-fast: true

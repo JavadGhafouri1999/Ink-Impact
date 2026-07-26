@@ -49,7 +49,7 @@ public class JwtService {
 	// secure. A short or low-entropy string from config (e.g. "secret123")
 	// would silently produce a weak key before. Now we throw at startup
 	// instead of discovering it in prod.
-	if(keyBytes.length < 32) {
+	if (keyBytes.length < 32) {
 	  throw new IllegalStateException(
 			  "jwt.secret must be at least 32 bytes — current length: " + keyBytes.length);
 	}
@@ -61,15 +61,15 @@ public class JwtService {
 	long now = System.currentTimeMillis();
 
 	String accessToken = Jwts.builder()
-							 .subject(user.getId().toString())
-							 .claim("username", user.getUsername())
-							 .claim("sessionId", session.getId().toString())
-							 .claim("role", user.getRole().name())
-							 .claim("type", "access")
-							 .issuedAt(new Date(now))
-							 .expiration(new Date(now + accessTokenExpMs))
-							 .signWith(signingKey) // FIX 1 (cont): use cached key
-							 .compact();
+	                         .subject(user.getId().toString())
+	                         .claim("username", user.getUsername())
+	                         .claim("sessionId", session.getId().toString())
+	                         .claim("role", user.getRole().name())
+	                         .claim("type", "access")
+	                         .issuedAt(new Date(now))
+	                         .expiration(new Date(now + accessTokenExpMs))
+	                         .signWith(signingKey) // FIX 1 (cont): use cached key
+	                         .compact();
 
 	log.info("Generated access token for user-ID: {}", user.getId());
 	return accessToken;
@@ -85,13 +85,13 @@ public class JwtService {
 	// flow anyway. Putting role in a 7-day token means a role change isn't
 	// reflected until it expires. sessionId + type is sufficient.
 	String refreshToken = Jwts.builder()
-							  .subject(user.getId().toString())
-							  .claim("sessionId", session.getId().toString())
-							  .claim("type", "refresh")
-							  .issuedAt(new Date(now))
-							  .expiration(new Date(now + refreshTokenExpMs))
-							  .signWith(signingKey) // FIX 1 (cont): use cached key
-							  .compact();
+	                          .subject(user.getId().toString())
+	                          .claim("sessionId", session.getId().toString())
+	                          .claim("type", "refresh")
+	                          .issuedAt(new Date(now))
+	                          .expiration(new Date(now + refreshTokenExpMs))
+	                          .signWith(signingKey) // FIX 1 (cont): use cached key
+	                          .compact();
 
 	log.info("Generated refresh token for user-ID: {}", user.getId());
 	return refreshToken;
@@ -108,15 +108,15 @@ public class JwtService {
   //      an uncaught JwtException bubbling up as a 500.
   //
   // Now callers get back Optional.empty() on any failure and parse exactly once.
-  public Optional <Claims> tryExtractClaims(String token) {
+  public Optional<Claims> tryExtractClaims(String token) {
 	try {
 	  Claims claims = Jwts.parser()
-						  .verifyWith(signingKey)
-						  .build()
-						  .parseSignedClaims(token)
-						  .getPayload();
+	                      .verifyWith(signingKey)
+	                      .build()
+	                      .parseSignedClaims(token)
+	                      .getPayload();
 	  return Optional.of(claims);
-	} catch(Exception e) {
+	} catch (Exception e) {
 	  // FIX 5: Downgrade from log.error to log.warn.
 	  // An expired or malformed token is an expected condition (not a server
 	  // error), so ERROR was flooding logs with noise. WARN is appropriate

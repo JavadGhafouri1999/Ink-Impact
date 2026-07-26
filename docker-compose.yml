@@ -1,264 +1,302 @@
-services :
+services:
   # ─────────────────────── Kafka ────────────────────────
-  kafka             :
-    image          : apache/kafka:3.9.2
-    container_name : kafka
-    environment    :
-      KAFKA_NODE_ID                                  : 1
-      KAFKA_PROCESS_ROLES                            : broker,controller
-      KAFKA_CONTROLLER_QUORUM_VOTERS                 : 1@kafka:9093
+  kafka:
+    image: apache/kafka:3.9.2
+    container_name: kafka
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       
       # Two listeners — one for inside Docker, one for outside
-      KAFKA_LISTENERS                                : PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
       
       # Internal = kafka:9092 for containers
       # External = localhost:9094 for IntelliJ/tools outside Docker
-      KAFKA_ADVERTISED_LISTENERS                     : PLAINTEXT://kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP           : PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
-      KAFKA_CONTROLLER_LISTENER_NAMES                : CONTROLLER
-      KAFKA_INTER_BROKER_LISTENER_NAME               : PLAINTEXT
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE                : "true"
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR         : 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR : 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR            : 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS         : 0
-    ports          :
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
       - "9092:9092"
     #      - "9094:9094"   # ← expose external port
-    networks       :
+    networks:
       - blog-net
-    healthcheck    :
-      test         : [ "CMD", "/opt/kafka/bin/kafka-broker-api-versions.sh", "--bootstrap-server", "kafka:9092" ]
-      interval     : 10s
-      timeout      : 10s
-      retries      : 5
-      start_period : 30s
+    healthcheck:
+      test: [ "CMD", "/opt/kafka/bin/kafka-broker-api-versions.sh", "--bootstrap-server", "kafka:9092" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
   
   # ─────────────────── Elasticsearch ────────────────────
-  elasticsearch     :
-    image          : elasticsearch:8.13.4
-    container_name : elasticsearch
-    environment    :
+  elasticsearch:
+    image: elasticsearch:8.13.4
+    container_name: elasticsearch
+    environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
-    ports          :
+    ports:
       - "9200:9200"
-    networks       :
+    networks:
       - blog-net
-    volumes        :
+    volumes:
       - es-data:/usr/share/elasticsearch/data
-    healthcheck    :
-      test         : [ "CMD-SHELL", "curl -s http://elasticsearch:9200 >/dev/null || exit 1" ]
-      interval     : 10s
-      timeout      : 5s
-      retries      : 10
-      start_period : 30s
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s http://elasticsearch:9200 >/dev/null || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
   
   # ─────────────────── Redis - Cache ────────────────────
-  redis             :
-    image    : redis:7-alpine
-    ports    :
+  redis:
+    image: redis:7-alpine
+    ports:
       - "16379:6379"
-    networks :
+    networks:
       - blog-net
-    volumes  :
+    volumes:
       - redis-post-data:/data
-    restart  : always
-  
-  # ─────────────────── Post Database ────────────────────
-  post-db           :
-    image          : postgres:17-alpine
-    container_name : post-db
-    volumes        :
-      - post-db:/var/lib/postgresql/data
-    ports          :
-      - "5001:5432"
-    networks       :
+    restart: always
+
+  # ──────────────── Config Server ──────────────
+  config-server:
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    networks:
       - blog-net
-    environment    :
-      POSTGRES_DB       : ${POST_DB}
-      POSTGRES_USER     : ${POSTGRES_USER}
-      POSTGRES_PASSWORD : ${POSTGRES_PASSWORD}
-    healthcheck    :
-      test     : [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POST_DB}" ]
-      interval : 5s
-      timeout  : 5s
-      retries  : 5
-  
-  # ────────────────── Comment Database ──────────────────
-  comment-db        :
-    image          : postgres:17-alpine
-    container_name : comment-db
-    volumes        :
-      - comment-db:/var/lib/postgresql/data
-    ports          :
-      - "5002:5432"
-    networks       :
-      - blog-net
-    environment    :
-      POSTGRES_DB       : ${COMMENT_DB}
-      POSTGRES_USER     : ${POSTGRES_USER}
-      POSTGRES_PASSWORD : ${POSTGRES_PASSWORD}
-    healthcheck    :
-      test     : [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${COMMENT_DB}" ]
-      interval : 5s
-      timeout  : 5s
-      retries  : 5
-  
-  # ────────────────── Analytics Database ──────────────────
-  analytics-db      :
-    image          : postgres:17-alpine
-    container_name : analytics-db
-    volumes        :
-      - analytics-db:/var/lib/postgresql/data
-    ports          :
-      - "5003:5432"
-    networks       :
-      - blog-net
-    environment    :
-      POSTGRES_DB       : ${ANALYTICS_DB}
-      POSTGRES_USER     : ${POSTGRES_USER}
-      POSTGRES_PASSWORD : ${POSTGRES_PASSWORD}
-    healthcheck    :
-      test     : [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${ANALYTICS_DB}" ]
-      interval : 5s
-      timeout  : 5s
-      retries  : 5
-  
-  # ────────────────── Auth Database ──────────────────
-  auth-db           :
-    image          : postgres:17-alpine
-    container_name : auth-db
-    volumes        :
-      - auth-db:/var/lib/postgresql/data
-    ports          :
-      - "5004:5432"
-    networks       :
-      - blog-net
-    environment    :
-      POSTGRES_DB       : ${AUTH_DB}
-      POSTGRES_USER     : ${POSTGRES_USER}
-      POSTGRES_PASSWORD : ${POSTGRES_PASSWORD}
-    healthcheck    :
-      test     : [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${AUTH_DB}" ]
-      interval : 5s
-      timeout  : 5s
-      retries  : 5
-    
-    # ──────────────────── Auth Service ────────────────────
-  auth-service      :
-    build          :
-      context    : ./auth-service
-      dockerfile : Dockerfile
-    container_name : auth-service
-    ports          :
-      - "4005:4005"
-    networks       :
-      - blog-net
-    depends_on     :
-      auth-db       :
-        condition : service_healthy
-      elasticsearch :
-        condition : service_healthy
-    volumes        :
-      - auth-uploads:/app/uploads/users
-    environment    :
-      SPRING_DATASOURCE_URL      : jdbc:postgresql://auth-db:5432/auth_db
-      SPRING_DATASOURCE_USERNAME : ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD : ${POSTGRES_PASSWORD}
-      JWT_SECRET                 : ${JWT_SECRET}
-  
-  # ──────────────────── Post Service ────────────────────
-  post-service      :
-    build          :
-      context    : ./post-service
-      dockerfile : Dockerfile
-    container_name : post-service
-    ports          :
-      - "4000:4000"
-    networks       :
-      - blog-net
-    depends_on     :
-      post-db       :
-        condition : service_healthy
-      elasticsearch :
-        condition : service_healthy
-    volumes        :
-      - post-uploads:/app/uploads/posts
-    environment    :
-      SPRING_DATASOURCE_URL          : jdbc:postgresql://post-db:5432/post_db
-      SPRING_DATASOURCE_USERNAME     : ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD     : ${POSTGRES_PASSWORD}
-      SPRING_KAFKA_BOOTSTRAP_SERVERS : kafka:9092
-      SPRING_DATA_REDIS_HOST         : redis
-      SPRING_DATA_REDIS_PORT         : 6379
-  
-  # ────────────────── Comment Service ───────────────────
-  comment-service   :
-    build          :
-      context    : ./comment-service
-      dockerfile : Dockerfile
-    container_name : comment-service
-    ports          :
-      - "4001:4001"
-    networks       :
-      - blog-net
-    depends_on     :
-      comment-db :
-        condition : service_healthy
-    environment    :
-      SPRING_DATASOURCE_URL          : jdbc:postgresql://comment-db:5432/comment_db
-      SPRING_DATASOURCE_USERNAME     : ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD     : ${POSTGRES_PASSWORD}
-      SPRING_KAFKA_BOOTSTRAP_SERVERS : kafka:9092
-      SPRING_DATA_REDIS_HOST         : redis
-      SPRING_DATA_REDIS_PORT         : 6379
-  
-  # ────────────────── Analytics Service ───────────────────
-  analytics-service :
-    build          :
-      context    : ./analytics-service
-      dockerfile : Dockerfile
-    container_name : analytics-service
-    ports          :
-      - "4002:4002"
-    networks       :
-      - blog-net
-    depends_on     :
-      analytics-db :
-        condition : service_healthy
-    environment    :
-      SPRING_DATASOURCE_URL          : jdbc:postgresql://analytics-db:5432/analytics_db
-      SPRING_DATASOURCE_USERNAME     : ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD     : ${POSTGRES_PASSWORD}
-      SPRING_KAFKA_BOOTSTRAP_SERVERS : kafka:9092
-  
+    volumes:
+      - /home/tezar/config-repo:/config-repo
+    environment:
+      SPRING_CLOUD_CONFIG_SERVER_GIT_URI: file:///config-repo
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s http://localhost:8888/actuator/health >/dev/null || exit 1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
   # ──────────────────── Api-gateway ─────────────────────
-  api-gateway       :
-    build          :
-      context    : ./api-gateway
-      dockerfile : Dockerfile
-    container_name : api-gateway
-    ports          :
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
       - "4004:4004"
-    networks       :
+    networks:
       - blog-net
-    environment    :
+    environment:
       - JWT_SECRET=${JWT_SECRET}
 
-# ───────────────────────── Others ─────────────────────────
-volumes  :
-  post-db         :
-  comment-db      :
-  analytics-db    :
-  auth-db         :
-  redis-post-data :
-  es-data         :
-  post-uploads    :
-  auth-uploads    :
+  # ─────────────────── Post Database ────────────────────
+  post-db:
+    image: postgres:17-alpine
+    container_name: post-db
+    volumes:
+      - post-db:/var/lib/postgresql/data
+    ports:
+      - "5001:5432"
+    networks:
+      - blog-net
+    environment:
+      POSTGRES_DB: ${POST_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POST_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  
+  # ────────────────── Comment Database ──────────────────
+  comment-db:
+    image: postgres:17-alpine
+    container_name: comment-db
+    volumes:
+      - comment-db:/var/lib/postgresql/data
+    ports:
+      - "5002:5432"
+    networks:
+      - blog-net
+    environment:
+      POSTGRES_DB: ${COMMENT_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${COMMENT_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  
+  # ────────────────── Analytics Database ──────────────────
+  analytics-db:
+    image: postgres:17-alpine
+    container_name: analytics-db
+    volumes:
+      - analytics-db:/var/lib/postgresql/data
+    ports:
+      - "5003:5432"
+    networks:
+      - blog-net
+    environment:
+      POSTGRES_DB: ${ANALYTICS_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${ANALYTICS_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  
+  # ────────────────── Auth Database ──────────────────
+  auth-db:
+    image: postgres:17-alpine
+    container_name: auth-db
+    volumes:
+      - auth-db:/var/lib/postgresql/data
+    ports:
+      - "5004:5432"
+    networks:
+      - blog-net
+    environment:
+      POSTGRES_DB: ${AUTH_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${AUTH_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    
+    # ──────────────────── Auth Service ────────────────────
 
-networks :
-  blog-net :
-    driver : bridge
+  # ─────────────────── Auth Service ────────────────────
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "4005:4005"
+    networks:
+      - blog-net
+    depends_on:
+      config-server:
+        condition: service_healthy
+      auth-db:
+        condition: service_healthy
+    volumes:
+      - auth-uploads:/app/uploads/users
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+  
+  # ──────────────────── Post Service ────────────────────
+  post-service:
+    build:
+      context: ./post-service
+      dockerfile: Dockerfile
+    container_name: post-service
+    ports:
+      - "4000:4000"
+    networks:
+      - blog-net
+    depends_on:
+      kafka:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      post-db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - post-uploads:/app/uploads/posts
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://post-db:5432/post_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+  
+  # ────────────────── Comment Service ───────────────────
+  comment-service:
+    build:
+      context: ./comment-service
+      dockerfile: Dockerfile
+    container_name: comment-service
+    ports:
+      - "4001:4001"
+    networks:
+      - blog-net
+    depends_on:
+      kafka:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      comment-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://comment-db:5432/comment_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+  
+  # ────────────────── Analytics Service ───────────────────
+  analytics-service:
+    build:
+      context: ./analytics-service
+      dockerfile: Dockerfile
+    container_name: analytics-service
+    ports:
+      - "4002:4002"
+    networks:
+      - blog-net
+    depends_on:
+      kafka:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      analytics-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://analytics-db:5432/analytics_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+
+# ───────────────────────── Others ─────────────────────────
+volumes:
+  post-db:
+  comment-db:
+  analytics-db:
+  auth-db:
+  redis-post-data:
+  es-data:
+  post-uploads:
+  auth-uploads:
+  kafka-data:
+
+networks:
+  blog-net:
+    driver: bridge

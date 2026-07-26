@@ -11,7 +11,7 @@ WORKDIR /app
 COPY pom.xml .
 
 # We now need to run the builder so it takes the deps and create the app inside ./app
-RUN mvn dependency:go-offline -q
+#RUN mvn dependency:go-offline -q
 
 COPY src ./src
 
